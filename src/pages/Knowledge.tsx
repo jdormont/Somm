@@ -166,15 +166,15 @@ export default function Knowledge() {
             <button
               key={item.id}
               onClick={() => setSelectedTerm(item.term)}
-              className="bg-white border border-stone-200 rounded-xl p-5 text-left hover:border-wine-800 hover:shadow-md transition-all group"
+              className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 text-left hover:border-wine-800 hover:shadow-md transition-all group"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border ${getCategoryColor(item.category)}`}>
                   {getCategoryIcon(item.category)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-1">
-                    <h3 className="text-lg font-semibold text-stone-900 group-hover:text-wine-800 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 mb-1">
+                    <h3 className="text-base sm:text-lg font-semibold text-stone-900 group-hover:text-wine-800 transition-colors">
                       {item.title}
                     </h3>
                     <span className="text-xs font-medium text-stone-500 uppercase tracking-wide whitespace-nowrap">

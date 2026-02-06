@@ -200,7 +200,7 @@ export default function Preferences() {
         <section>
           <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Adventurousness</h2>
           <p className="text-sm text-stone-500 mb-4">How open are you to trying new or unexpected wines?</p>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             {([
               { value: 'low' as const, label: 'Play it safe', desc: 'Stick to what I know' },
               { value: 'medium' as const, label: 'Open-minded', desc: 'Similar profiles, new regions' },
@@ -236,7 +236,7 @@ export default function Preferences() {
                 <Store className="w-4 h-4 text-stone-500" />
                 <span className="text-sm font-medium text-stone-700">Store / Wine Shop</span>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex-1">
                   <label className="block text-xs text-stone-500 mb-1">Min ($)</label>
                   <input
@@ -253,7 +253,7 @@ export default function Preferences() {
                     className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
                   />
                 </div>
-                <div className="text-stone-300 mt-5">—</div>
+                <div className="text-stone-300 hidden sm:block sm:mt-5">—</div>
                 <div className="flex-1">
                   <label className="block text-xs text-stone-500 mb-1">Max ($)</label>
                   <input
@@ -283,7 +283,7 @@ export default function Preferences() {
                   <span className="text-xs text-stone-400">Auto ~2.5x store</span>
                 )}
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex-1">
                   <label className="block text-xs text-stone-500 mb-1">Min ($)</label>
                   <input
@@ -297,7 +297,7 @@ export default function Preferences() {
                     className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
                   />
                 </div>
-                <div className="text-stone-300 mt-5">—</div>
+                <div className="text-stone-300 hidden sm:block sm:mt-5">—</div>
                 <div className="flex-1">
                   <label className="block text-xs text-stone-500 mb-1">Max ($)</label>
                   <input

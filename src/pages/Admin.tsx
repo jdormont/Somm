@@ -136,7 +136,7 @@ export default function Admin() {
             return (
               <div
                 key={profile.id}
-                className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-4"
+                className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -161,14 +161,14 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0">
                   {!isSelf && (
                     <>
                       {profile.role !== 'admin' ? (
                         <button
                           onClick={() => updateRole(profile.id, 'admin')}
                           disabled={isUpdating}
-                          className="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50"
+                          className="text-xs px-4 py-2 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50"
                           title="Make admin"
                         >
                           <Shield className="w-3.5 h-3.5" />
@@ -177,7 +177,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateRole(profile.id, 'user')}
                           disabled={isUpdating}
-                          className="text-xs px-3 py-1.5 rounded-lg border border-wine-200 text-wine-700 bg-wine-50 hover:bg-wine-100 transition-colors disabled:opacity-50"
+                          className="text-xs px-4 py-2 rounded-lg border border-wine-200 text-wine-700 bg-wine-50 hover:bg-wine-100 transition-colors disabled:opacity-50"
                           title="Remove admin"
                         >
                           <Shield className="w-3.5 h-3.5" />
@@ -188,7 +188,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateApproval(profile.id, false)}
                           disabled={isUpdating}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                         >
                           {isUpdating ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -201,7 +201,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateApproval(profile.id, true)}
                           disabled={isUpdating}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                         >
                           {isUpdating ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />

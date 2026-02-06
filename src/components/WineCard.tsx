@@ -66,8 +66,8 @@ export default function WineCard({ wine, index }: { wine: WineRecommendation; in
       className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-lg hover:border-stone-300 transition-all duration-300 group"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
@@ -184,7 +184,7 @@ export default function WineCard({ wine, index }: { wine: WineRecommendation; in
               </button>
               <button
                 onClick={() => { setShowSave(false); setSaveRating(0); }}
-                className="px-3 py-2 text-sm text-stone-500 hover:text-stone-700 transition-colors"
+                className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700 transition-colors"
               >
                 Cancel
               </button>

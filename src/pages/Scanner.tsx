@@ -218,7 +218,7 @@ export default function Scanner() {
                 </span>
               </span>
             </label>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
@@ -232,7 +232,7 @@ export default function Scanner() {
                   />
                 </div>
               </div>
-              <span className="text-stone-300">to</span>
+              <span className="text-stone-300 hidden sm:inline">to</span>
               <div className="flex-1">
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>

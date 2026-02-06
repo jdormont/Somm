@@ -79,11 +79,11 @@ export function WineKnowledgeModal({ term, onClose }: WineKnowledgeModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-start justify-between">
-          <div className="flex-1">
+        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-start justify-between">
+          <div className="flex-1 min-w-0">
             {knowledge && (
               <div className="mb-2">
                 <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getCategoryBadgeColor(knowledge.category)}`}>
@@ -91,20 +91,20 @@ export function WineKnowledgeModal({ term, onClose }: WineKnowledgeModalProps) {
                 </span>
               </div>
             )}
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               {loading ? 'Loading...' : knowledge?.title || 'Wine Knowledge'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+            className="ml-3 sm:ml-4 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           >
             <X size={24} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-5 sm:py-6">
           {loading && (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600"></div>
