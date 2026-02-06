@@ -29,15 +29,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles')
       .select('role, approved')
       .eq('user_id', userId)
       .maybeSingle();
 
+    if (error) {
+      console.error('Error loading profile:', error);
+      setProfile(null);
+      return;
+    }
+
     if (data) {
+      console.log('Profile loaded:', data);
       setProfile({ role: data.role as 'admin' | 'user', approved: data.approved });
     } else {
+      console.log('No profile found for user:', userId);
       setProfile(null);
     }
   };

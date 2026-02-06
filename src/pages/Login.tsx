@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Wine, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,8 +8,18 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, isApproved, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (isApproved) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/pending', { replace: true });
+      }
+    }
+  }, [user, isApproved, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +30,6 @@ export default function Login() {
     if (error) {
       setError(error);
       setLoading(false);
-    } else {
-      navigate('/dashboard');
     }
   };
 
