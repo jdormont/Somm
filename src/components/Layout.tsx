@@ -1,8 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Wine, LayoutDashboard, ScanLine, Heart, Settings, LogOut, BookOpen } from 'lucide-react';
+import { Wine, LayoutDashboard, ScanLine, Heart, Settings, LogOut, BookOpen, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const navItems = [
+const baseNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/scan', icon: ScanLine, label: 'Scan' },
   { to: '/cellar', icon: BookOpen, label: 'Cellar' },
@@ -11,8 +11,12 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { to: '/admin', icon: Shield, label: 'Admin' }]
+    : baseNavItems;
 
   const handleSignOut = async () => {
     await signOut();
