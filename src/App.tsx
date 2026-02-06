@@ -14,6 +14,7 @@ import Cellar from './pages/Cellar';
 import Admin from './pages/Admin';
 import ScanDetail from './pages/ScanDetail';
 import Knowledge from './pages/Knowledge';
+import { RecommendationDemo } from './pages/RecommendationDemo';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/pending" element={<PendingApproval />} />
+          <Route path="/demo" element={<RecommendationDemo />} />
           <Route
             element={
               <ProtectedRoute>
