@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ScanLine, Clock, Wine, MapPin, DollarSign, Loader2, Trash2, ArrowRight, Heart, Settings, Plus, Star, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ScanLine, Clock, Wine, DollarSign, Loader2, ArrowRight, Heart, Settings, Search, X, Store, UtensilsCrossed, TrendingUp, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,6 +8,7 @@ interface ScanSession {
   id: string;
   budget_min: number;
   budget_max: number;
+  context: string;
   notes: string;
   wines_detected: Array<{ name: string; type: string }>;
   recommendations: Array<{
@@ -21,6 +22,9 @@ interface ScanSession {
   created_at: string;
 }
 
+type DateFilter = 'all' | 'week' | 'month' | '3months';
+type ContextFilter = 'all' | 'store' | 'restaurant';
+
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -30,24 +34,47 @@ function timeAgo(dateStr: string) {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function getDateCutoff(filter: DateFilter): Date | null {
+  if (filter === 'all') return null;
+  const now = new Date();
+  if (filter === 'week') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (filter === 'month') return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+}
+
+function matchesSearch(session: ScanSession, query: string): boolean {
+  const q = query.toLowerCase();
+  if (session.notes?.toLowerCase().includes(q)) return true;
+  if (session.summary?.toLowerCase().includes(q)) return true;
+  if (session.recommendations?.some((r) =>
+    r.name.toLowerCase().includes(q) ||
+    r.region?.toLowerCase().includes(q) ||
+    r.type?.toLowerCase().includes(q)
+  )) return true;
+  if (session.wines_detected?.some((w) =>
+    w.name.toLowerCase().includes(q) ||
+    w.type?.toLowerCase().includes(q)
+  )) return true;
+  return false;
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<ScanSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasPrefs, setHasPrefs] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [savingWineKey, setSavingWineKey] = useState<string | null>(null);
-  const [saveRating, setSaveRating] = useState(0);
-  const [savedWines, setSavedWines] = useState<Set<string>>(new Set());
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [contextFilter, setContextFilter] = useState<ContextFilter>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
 
   useEffect(() => {
-    if (user) {
-      loadData();
-    }
+    if (user) loadData();
   }, [user]);
 
   const loadData = async () => {
@@ -58,8 +85,7 @@ export default function Dashboard() {
         .from('scan_sessions')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20),
+        .order('created_at', { ascending: false }),
       supabase
         .from('user_preferences')
         .select('id')
@@ -73,28 +99,36 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const deleteSession = async (id: string) => {
-    await supabase.from('scan_sessions').delete().eq('id', id);
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-  };
+  const filtered = useMemo(() => {
+    let result = sessions;
 
-  const handleSaveToCellar = async (rec: ScanSession['recommendations'][0], wineKey: string) => {
-    if (!user || saveRating === 0) return;
-    await supabase.from('wine_memories').insert({
-      user_id: user.id,
-      name: rec.name,
-      type: rec.type || '',
-      region: rec.region || '',
-      price: rec.price,
-      rating: saveRating,
-      producer: '',
-      vintage: '',
-      notes: '',
-    });
-    setSavedWines((prev) => new Set(prev).add(wineKey));
-    setSavingWineKey(null);
-    setSaveRating(0);
-  };
+    if (contextFilter !== 'all') {
+      result = result.filter((s) => (s.context || 'store') === contextFilter);
+    }
+
+    const cutoff = getDateCutoff(dateFilter);
+    if (cutoff) {
+      result = result.filter((s) => new Date(s.created_at) >= cutoff);
+    }
+
+    if (searchQuery.trim()) {
+      result = result.filter((s) => matchesSearch(s, searchQuery.trim()));
+    }
+
+    return result;
+  }, [sessions, contextFilter, dateFilter, searchQuery]);
+
+  const totalWinesDiscovered = useMemo(() => {
+    return sessions.reduce((sum, s) => sum + (s.wines_detected?.length || 0), 0);
+  }, [sessions]);
+
+  const avgMatch = useMemo(() => {
+    const allScores = sessions.flatMap((s) => s.recommendations?.map((r) => r.match_score) || []);
+    if (allScores.length === 0) return 0;
+    return Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length);
+  }, [sessions]);
+
+  const hasActiveFilters = contextFilter !== 'all' || dateFilter !== 'all' || searchQuery.trim() !== '';
 
   if (loading) {
     return (
@@ -157,8 +191,107 @@ export default function Dashboard() {
         </div>
       )}
 
+      {sessions.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="bg-white rounded-2xl border border-stone-200 p-4 text-center">
+            <p className="text-2xl font-bold text-stone-900">{sessions.length}</p>
+            <p className="text-xs text-stone-500 mt-0.5">Scans</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-stone-200 p-4 text-center">
+            <p className="text-2xl font-bold text-stone-900">{totalWinesDiscovered}</p>
+            <p className="text-xs text-stone-500 mt-0.5">Wines Found</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-stone-200 p-4 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <p className="text-2xl font-bold text-emerald-600">{avgMatch}%</p>
+            </div>
+            <p className="text-xs text-stone-500 mt-0.5">Avg Match</p>
+          </div>
+        </div>
+      )}
+
       <div>
-        <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-4">Recent Scans</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider">Scan History</h2>
+          {hasActiveFilters && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setContextFilter('all');
+                setDateFilter('all');
+              }}
+              className="text-xs text-wine-700 hover:text-wine-900 font-medium transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {sessions.length > 0 && (
+          <div className="space-y-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search wines, regions, notes..."
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {(['all', 'store', 'restaurant'] as ContextFilter[]).map((ctx) => (
+                  <button
+                    key={ctx}
+                    onClick={() => setContextFilter(contextFilter === ctx && ctx !== 'all' ? 'all' : ctx)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                      contextFilter === ctx
+                        ? 'bg-wine-800 text-white'
+                        : 'bg-white text-stone-500 border border-stone-200 hover:border-stone-300'
+                    }`}
+                  >
+                    {ctx === 'store' && <Store className="w-3 h-3" />}
+                    {ctx === 'restaurant' && <UtensilsCrossed className="w-3 h-3" />}
+                    {ctx === 'all' ? 'All' : ctx === 'store' ? 'Store' : 'Restaurant'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="w-px h-5 bg-stone-200 flex-shrink-0" />
+
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {([
+                  { key: 'all', label: 'All time' },
+                  { key: 'week', label: 'Week' },
+                  { key: 'month', label: 'Month' },
+                  { key: '3months', label: '3 months' },
+                ] as { key: DateFilter; label: string }[]).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setDateFilter(dateFilter === key && key !== 'all' ? 'all' : key)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      dateFilter === key
+                        ? 'bg-wine-800 text-white'
+                        : 'bg-white text-stone-500 border border-stone-200 hover:border-stone-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {sessions.length === 0 ? (
           <div className="text-center py-16">
@@ -166,170 +299,94 @@ export default function Dashboard() {
               <Wine className="w-8 h-8 text-stone-300" />
             </div>
             <p className="text-stone-500 text-sm mb-1">No scans yet</p>
-            <p className="text-stone-400 text-xs">Scan a wine list to see your history here</p>
+            <p className="text-stone-400 text-xs mb-6">Scan a wine list to see your history here</p>
+            <Link
+              to="/scan"
+              className="inline-flex items-center gap-2 bg-wine-800 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-wine-900 transition-colors"
+            >
+              <ScanLine className="w-4 h-4" />
+              Start your first scan
+            </Link>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-12 h-12 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-3">
+              <Search className="w-5 h-5 text-stone-300" />
+            </div>
+            <p className="text-stone-500 text-sm mb-1">No matching scans</p>
+            <p className="text-stone-400 text-xs">Try adjusting your search or filters</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {sessions.map((session) => {
-              const isExpanded = expandedId === session.id;
+            {filtered.map((session) => {
               const topRec = session.recommendations?.[0];
+              const isRestaurant = (session.context || 'store') === 'restaurant';
               return (
-                <div
+                <button
                   key={session.id}
-                  className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-stone-300 transition-all"
+                  onClick={() => navigate(`/history/${session.id}`)}
+                  className="w-full text-left bg-white rounded-2xl border border-stone-200 p-4 hover:border-stone-300 hover:shadow-sm transition-all group"
                 >
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : session.id)}
-                    className="w-full text-left p-4 flex items-center gap-4"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-wine-50 flex items-center justify-center flex-shrink-0">
-                      <Wine className="w-5 h-5 text-wine-700" />
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isRestaurant ? 'bg-amber-50' : 'bg-sky-50'
+                    }`}>
+                      {isRestaurant
+                        ? <UtensilsCrossed className="w-5 h-5 text-amber-600" />
+                        : <Store className="w-5 h-5 text-sky-600" />
+                      }
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-stone-900 truncate">
+                        <p className="text-sm font-medium text-stone-900 truncate group-hover:text-wine-800 transition-colors">
                           {topRec ? topRec.name : 'Wine scan'}
                         </p>
                         {topRec && (
-                          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0 flex items-center gap-0.5">
+                            <TrendingUp className="w-2.5 h-2.5" />
                             {topRec.match_score}%
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-stone-400 mt-0.5">
+
+                      <div className="flex items-center gap-3 text-xs text-stone-400 mt-1">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {timeAgo(session.created_at)}
                         </span>
-                        <span>{session.wines_detected?.length || 0} wines found</span>
-                        {session.notes && (
-                          <span className="truncate max-w-32">{session.notes}</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="px-4 pb-4 border-t border-stone-100 pt-3">
-                      {session.summary && (
-                        <p className="text-sm text-stone-600 mb-3">{session.summary}</p>
-                      )}
-
-                      <div className="flex items-center gap-4 text-xs text-stone-500 mb-3">
+                        <span>{session.wines_detected?.length || 0} wines</span>
                         <span className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
-                          ${session.budget_min} - ${session.budget_max}
+                          {session.budget_min}-{session.budget_max}
                         </span>
                       </div>
 
-                      {session.recommendations && session.recommendations.length > 0 && (
-                        <div className="space-y-2">
-                          {session.recommendations.map((rec, i) => {
-                            const wineKey = `${session.id}-${i}`;
-                            const isSaving = savingWineKey === wineKey;
-                            const isSaved = savedWines.has(wineKey);
-                            return (
-                              <div key={i} className="bg-stone-50 rounded-xl overflow-hidden">
-                                <div className="flex items-center gap-3 p-3">
-                                  <span className="text-xs font-bold text-stone-400 w-5">#{i + 1}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-stone-800 truncate">{rec.name}</p>
-                                    <div className="flex items-center gap-2 text-xs text-stone-500 mt-0.5">
-                                      <span>{rec.type}</span>
-                                      {rec.region && (
-                                        <span className="flex items-center gap-0.5">
-                                          <MapPin className="w-3 h-3" />
-                                          {rec.region}
-                                        </span>
-                                      )}
-                                      {rec.price != null && <span>${rec.price}</span>}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className="text-xs font-bold text-emerald-600">{rec.match_score}%</span>
-                                    {isSaved ? (
-                                      <span className="text-emerald-600">
-                                        <Check className="w-4 h-4" />
-                                      </span>
-                                    ) : (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSavingWineKey(isSaving ? null : wineKey);
-                                          setSaveRating(0);
-                                        }}
-                                        className="text-stone-400 hover:text-wine-800 transition-colors"
-                                        title="Add to cellar"
-                                      >
-                                        <Plus className="w-4 h-4" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                                {isSaving && (
-                                  <div className="px-3 pb-3 pt-1 border-t border-stone-100">
-                                    <p className="text-xs text-stone-600 mb-2">Rate this wine to save it to your cellar:</p>
-                                    <div className="flex items-center gap-3">
-                                      <div className="flex items-center gap-0.5">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <button
-                                            key={star}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSaveRating(star);
-                                            }}
-                                            className="hover:scale-110 transition-transform"
-                                          >
-                                            <Star
-                                              className={`w-5 h-5 transition-colors ${
-                                                star <= saveRating ? 'text-amber-400 fill-amber-400' : 'text-stone-300'
-                                              }`}
-                                            />
-                                          </button>
-                                        ))}
-                                      </div>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSaveToCellar(rec, wineKey);
-                                        }}
-                                        disabled={saveRating === 0}
-                                        className="bg-wine-800 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-wine-900 transition-colors disabled:opacity-40"
-                                      >
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSavingWineKey(null);
-                                          setSaveRating(0);
-                                        }}
-                                        className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                      {session.recommendations && session.recommendations.length > 1 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {session.recommendations.slice(1, 4).map((rec, i) => (
+                            <span key={i} className="text-xs text-stone-400 bg-stone-50 px-2 py-0.5 rounded-full truncate max-w-[140px]">
+                              {rec.name}
+                            </span>
+                          ))}
+                          {session.recommendations.length > 4 && (
+                            <span className="text-xs text-stone-400">
+                              +{session.recommendations.length - 4}
+                            </span>
+                          )}
                         </div>
                       )}
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteSession(session.id);
-                        }}
-                        className="mt-3 flex items-center gap-1.5 text-xs text-stone-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Delete scan
-                      </button>
+                      {session.notes && (
+                        <p className="text-xs text-stone-400 mt-1.5 truncate italic">
+                          <MessageSquare className="w-3 h-3 inline mr-1" />
+                          {session.notes}
+                        </p>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    <ArrowRight className="w-4 h-4 text-stone-300 group-hover:text-wine-700 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-2" />
+                  </div>
+                </button>
               );
             })}
           </div>

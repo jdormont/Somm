@@ -12,6 +12,7 @@ import Preferences from './pages/Preferences';
 import Settings from './pages/Settings';
 import Cellar from './pages/Cellar';
 import Admin from './pages/Admin';
+import ScanDetail from './pages/ScanDetail';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/history/:id" element={<ScanDetail />} />
             <Route path="/scan" element={<Scanner />} />
             <Route path="/cellar" element={<Cellar />} />
             <Route path="/preferences" element={<Preferences />} />
