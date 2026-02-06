@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ScanLine, Clock, Wine, MapPin, DollarSign, Loader2, Trash2, ArrowRight, Heart, Settings } from 'lucide-react';
+import { ScanLine, Clock, Wine, MapPin, DollarSign, Loader2, Trash2, ArrowRight, Heart, Settings, Plus, Star, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -40,6 +40,9 @@ export default function Dashboard() {
   const [hasPrefs, setHasPrefs] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [savingWineKey, setSavingWineKey] = useState<string | null>(null);
+  const [saveRating, setSaveRating] = useState(0);
+  const [savedWines, setSavedWines] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -73,6 +76,24 @@ export default function Dashboard() {
   const deleteSession = async (id: string) => {
     await supabase.from('scan_sessions').delete().eq('id', id);
     setSessions((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleSaveToCellar = async (rec: ScanSession['recommendations'][0], wineKey: string) => {
+    if (!user || saveRating === 0) return;
+    await supabase.from('wine_memories').insert({
+      user_id: user.id,
+      name: rec.name,
+      type: rec.type || '',
+      region: rec.region || '',
+      price: rec.price,
+      rating: saveRating,
+      producer: '',
+      vintage: '',
+      notes: '',
+    });
+    setSavedWines((prev) => new Set(prev).add(wineKey));
+    setSavingWineKey(null);
+    setSaveRating(0);
   };
 
   if (loading) {
@@ -203,25 +224,96 @@ export default function Dashboard() {
 
                       {session.recommendations && session.recommendations.length > 0 && (
                         <div className="space-y-2">
-                          {session.recommendations.map((rec, i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl">
-                              <span className="text-xs font-bold text-stone-400 w-5">#{i + 1}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-stone-800 truncate">{rec.name}</p>
-                                <div className="flex items-center gap-2 text-xs text-stone-500 mt-0.5">
-                                  <span>{rec.type}</span>
-                                  {rec.region && (
-                                    <span className="flex items-center gap-0.5">
-                                      <MapPin className="w-3 h-3" />
-                                      {rec.region}
-                                    </span>
-                                  )}
-                                  {rec.price != null && <span>${rec.price}</span>}
+                          {session.recommendations.map((rec, i) => {
+                            const wineKey = `${session.id}-${i}`;
+                            const isSaving = savingWineKey === wineKey;
+                            const isSaved = savedWines.has(wineKey);
+                            return (
+                              <div key={i} className="bg-stone-50 rounded-xl overflow-hidden">
+                                <div className="flex items-center gap-3 p-3">
+                                  <span className="text-xs font-bold text-stone-400 w-5">#{i + 1}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-stone-800 truncate">{rec.name}</p>
+                                    <div className="flex items-center gap-2 text-xs text-stone-500 mt-0.5">
+                                      <span>{rec.type}</span>
+                                      {rec.region && (
+                                        <span className="flex items-center gap-0.5">
+                                          <MapPin className="w-3 h-3" />
+                                          {rec.region}
+                                        </span>
+                                      )}
+                                      {rec.price != null && <span>${rec.price}</span>}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <span className="text-xs font-bold text-emerald-600">{rec.match_score}%</span>
+                                    {isSaved ? (
+                                      <span className="text-emerald-600">
+                                        <Check className="w-4 h-4" />
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSavingWineKey(isSaving ? null : wineKey);
+                                          setSaveRating(0);
+                                        }}
+                                        className="text-stone-400 hover:text-wine-800 transition-colors"
+                                        title="Add to cellar"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
+                                {isSaving && (
+                                  <div className="px-3 pb-3 pt-1 border-t border-stone-100">
+                                    <p className="text-xs text-stone-600 mb-2">Rate this wine to save it to your cellar:</p>
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <button
+                                            key={star}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSaveRating(star);
+                                            }}
+                                            className="hover:scale-110 transition-transform"
+                                          >
+                                            <Star
+                                              className={`w-5 h-5 transition-colors ${
+                                                star <= saveRating ? 'text-amber-400 fill-amber-400' : 'text-stone-300'
+                                              }`}
+                                            />
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSaveToCellar(rec, wineKey);
+                                        }}
+                                        disabled={saveRating === 0}
+                                        className="bg-wine-800 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-wine-900 transition-colors disabled:opacity-40"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSavingWineKey(null);
+                                          setSaveRating(0);
+                                        }}
+                                        className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <span className="text-xs font-bold text-emerald-600">{rec.match_score}%</span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
 
