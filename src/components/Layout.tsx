@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Wine, LayoutDashboard, ScanLine, Heart, Settings, LogOut, BookOpen, Shield } from 'lucide-react';
+import { Wine, LayoutDashboard, ScanLine, Heart, Settings, LogOut, BookOpen, Shield, GraduationCap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const baseNavItems = [
@@ -7,6 +7,7 @@ const baseNavItems = [
   { to: '/scan', icon: ScanLine, label: 'Scan' },
   { to: '/cellar', icon: BookOpen, label: 'Cellar' },
   { to: '/preferences', icon: Heart, label: 'Tastes' },
+  { to: '/knowledge', icon: GraduationCap, label: 'Learn' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

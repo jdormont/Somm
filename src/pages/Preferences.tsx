@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Heart, Loader2, Check, X, Store, UtensilsCrossed } from 'lucide-react';
+import { Heart, Loader2, Check, X, Store, UtensilsCrossed, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 const WINE_TYPES = ['Red', 'White', 'Rosé', 'Sparkling', 'Dessert', 'Fortified', 'Orange'];
 const REGIONS = [
@@ -152,14 +153,23 @@ export default function Preferences() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-wine-50 flex items-center justify-center">
-          <Heart className="w-5 h-5 text-wine-700" />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-wine-50 flex items-center justify-center">
+            <Heart className="w-5 h-5 text-wine-700" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-stone-900">Your Preferences</h1>
+            <p className="text-sm text-stone-500">Help us understand your palate</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">Your Preferences</h1>
-          <p className="text-sm text-stone-500">Help us understand your palate</p>
-        </div>
+        <Link
+          to="/knowledge"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-wine-700 bg-wine-50 rounded-xl hover:bg-wine-100 transition-colors"
+        >
+          <BookOpen size={16} />
+          Learn
+        </Link>
       </div>
 
       <div className="space-y-10">
