@@ -60,9 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Check if we're handling an OAuth redirect
+      const isRedirect = window.location.hash && window.location.hash.includes('access_token');
+      
       if (session?.user) {
         loadProfile(session.user.id).then(() => setLoading(false));
-      } else {
+      } else if (!isRedirect) {
+        // Only set loading to false if we're not expecting an OAuth redirect
+        // If we are, we'll wait for onAuthStateChange to handle it
         setLoading(false);
       }
     });
