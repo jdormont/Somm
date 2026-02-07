@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 interface UserProfile {
   role: 'admin' | 'user';
   approved: boolean;
+  use_shared_key: boolean;
 }
 
 interface AuthContextType {
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('role, approved')
+      .select('role, approved, use_shared_key')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -44,7 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data) {
       console.log('Profile loaded:', data);
-      setProfile({ role: data.role as 'admin' | 'user', approved: data.approved });
+      setProfile({ 
+        role: data.role as 'admin' | 'user', 
+        approved: data.approved,
+        use_shared_key: data.use_shared_key 
+      });
     } else {
       console.log('No profile found for user:', userId);
       setProfile(null);

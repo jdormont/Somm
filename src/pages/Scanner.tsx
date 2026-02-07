@@ -22,7 +22,7 @@ interface ScanResult {
 }
 
 export default function Scanner() {
-  const { user, session } = useAuth();
+  const { user, session, profile } = useAuth();
   const navigate = useNavigate();
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [context, setContext] = useState<'store' | 'restaurant'>('store');
@@ -64,7 +64,9 @@ export default function Scanner() {
     if (!imageBase64 || !user || !session) return;
 
     const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-    if (!apiKey) {
+    
+    // Only require local API key if not using shared key
+    if (!apiKey && !profile?.use_shared_key) {
       setError('Please add your OpenAI API key in Settings first.');
       return;
     }

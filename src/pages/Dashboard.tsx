@@ -62,7 +62,7 @@ function matchesSearch(session: ScanSession, query: string): boolean {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<ScanSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +75,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) loadData();
-  }, [user]);
+  }, [user, profile]);
 
   const loadData = async () => {
     if (!user) return;
@@ -95,7 +95,7 @@ export default function Dashboard() {
 
     setSessions(sessionsRes.data || []);
     setHasPrefs(!!prefsRes.data);
-    setHasApiKey(!!localStorage.getItem('somm_openai_api_key'));
+    setHasApiKey(!!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key);
     setLoading(false);
   };
 

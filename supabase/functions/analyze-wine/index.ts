@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -129,7 +130,30 @@ Deno.serve(async (req: Request) => {
       notes,
     } = body;
 
-    const apiKey = Deno.env.get("OPENAI_API_KEY") || body.openai_api_key;
+    // Determine which API key to use
+    let apiKey = body.openai_api_key;
+    const authHeader = req.headers.get('Authorization');
+
+    if (authHeader) {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: user } = await supabaseClient.auth.getUser();
+      if (user?.user) {
+        const { data: profile } = await supabaseClient
+          .from('user_profiles')
+          .select('use_shared_key')
+          .eq('user_id', user.user.id)
+          .single();
+
+        if (profile?.use_shared_key) {
+          apiKey = Deno.env.get('OPENAI_API_KEY');
+        }
+      }
+    }
 
     if (!apiKey) {
       return new Response(

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, UserCheck, UserX, Loader2, Users, Clock, CheckCircle2 } from 'lucide-react';
+import { Shield, UserCheck, UserX, Loader2, Users, Clock, CheckCircle2, Key } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ interface UserProfileRow {
   email: string;
   role: string;
   approved: boolean;
+  use_shared_key: boolean;
   created_at: string;
 }
 
@@ -55,6 +56,18 @@ export default function Admin() {
       .eq('id', profileId);
     setProfiles((prev) =>
       prev.map((p) => (p.id === profileId ? { ...p, role } : p))
+    );
+    setUpdatingId(null);
+  };
+
+  const updateSharedKey = async (profileId: string, useSharedKey: boolean) => {
+    setUpdatingId(profileId);
+    await supabase
+      .from('user_profiles')
+      .update({ use_shared_key: useSharedKey })
+      .eq('id', profileId);
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === profileId ? { ...p, use_shared_key: useSharedKey } : p))
     );
     setUpdatingId(null);
   };
@@ -209,6 +222,21 @@ export default function Admin() {
                             <UserCheck className="w-3.5 h-3.5" />
                           )}
                           Approve
+                        </button>
+                      )}
+                      {profile.approved && (
+                        <button
+                          onClick={() => updateSharedKey(profile.id, !profile.use_shared_key)}
+                          disabled={isUpdating}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-colors disabled:opacity-50 ${
+                            profile.use_shared_key
+                              ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                              : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'
+                          }`}
+                          title={profile.use_shared_key ? 'Using shared API key' : 'Using own API key'}
+                        >
+                          <Key className="w-3.5 h-3.5" />
+                          {profile.use_shared_key ? 'Shared Key' : 'Own Key'}
                         </button>
                       )}
                     </>
