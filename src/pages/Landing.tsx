@@ -6,18 +6,32 @@ export default function Landing() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-cream-50">
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-cream-50/80 backdrop-blur-md border-b border-stone-200/50">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Wine className="w-6 h-6 text-wine-800" />
-            <span className="font-semibold text-lg text-stone-900 tracking-tight">Somm</span>
+    <div className="min-h-screen bg-wine-slate-950 text-champagne-100 overflow-x-hidden selection:bg-somm-red-900 selection:text-white">
+      {/* Background Ambience */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-somm-red-900/20 rounded-full blur-[120px] opacity-40 mix-blend-screen" />
+          <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-wine-slate-900/40 rounded-full blur-[100px]" />
+      </div>
+
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-wine-slate-950/80 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="p-2 rounded-full bg-somm-red-900/20 text-somm-red-500 group-hover:bg-somm-red-900/40 transition-colors">
+               <Wine className="w-5 h-5" />
+            </div>
+            <span className="font-serif font-bold text-xl tracking-wide text-champagne-100">Somm</span>
           </Link>
-          <div className="flex items-center gap-3">
+          
+          <div className="hidden md:flex items-center gap-6">
+             <a href="#features" className="text-sm font-medium text-stone-400 hover:text-champagne-100 transition-colors">Features</a>
+             <a href="#how-it-works" className="text-sm font-medium text-stone-400 hover:text-champagne-100 transition-colors">How it works</a>
+          </div>
+
+          <div className="flex items-center gap-4">
             {user ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-2 bg-wine-800 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-wine-900 transition-colors"
+                className="inline-flex items-center gap-2 bg-somm-red-900 border border-somm-red-500/30 text-champagne-100 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-somm-red-500 hover:text-white transition-all shadow-lg shadow-somm-red-900/20 hover:shadow-somm-red-500/20"
               >
                 Dashboard
                 <ArrowRight className="w-4 h-4" />
@@ -26,16 +40,15 @@ export default function Landing() {
               <>
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors px-4 py-2"
+                  className="hidden md:block text-sm font-medium text-stone-400 hover:text-white transition-colors px-4 py-2"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 bg-wine-800 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-wine-900 transition-colors"
+                  className="inline-flex items-center gap-2 bg-champagne-400 text-wine-slate-950 px-6 py-2.5 rounded-full text-sm font-bold hover:bg-white transition-all shadow-[0_0_15px_-3px_rgba(212,196,163,0.3)] hover:shadow-[0_0_20px_-3px_rgba(255,255,255,0.4)]"
                 >
-                  Get started
-                  <ArrowRight className="w-4 h-4" />
+                  Get Started
                 </Link>
               </>
             )}
@@ -43,101 +56,114 @@ export default function Landing() {
         </div>
       </nav>
 
-      <section className="pt-32 pb-20 px-6">
+      {/* Hero Section */}
+      <section className="relative pt-40 pb-20 px-6 z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-wine-100/60 text-wine-800 px-4 py-1.5 rounded-full text-sm font-medium mb-8">
-            <ScanLine className="w-4 h-4" />
-            AI-Powered Wine Advisor
+          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full mb-8 backdrop-blur-sm animate-fade-in-up">
+            <ScanLine className="w-3.5 h-3.5 text-champagne-400" />
+            <span className="text-xs font-medium tracking-wide text-champagne-100/90 uppercase">Your Pocket Sommelier</span>
           </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-stone-900 tracking-tight leading-[1.1] mb-6">
-            Never second-guess
-            <br />
-            <span className="text-wine-800">a wine choice</span> again
+          
+          <h1 className="font-serif text-5xl sm:text-7xl font-medium text-white tracking-tight leading-[1.1] mb-8 drop-shadow-2xl">
+            Never drink a <br/>
+            <span className="text-champagne-400 relative">
+               bad glass
+               <svg className="absolute w-full h-3 -bottom-1 left-0 text-somm-red-500 opacity-60" viewBox="0 0 100 10" preserveAspectRatio="none">
+                 <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="2" fill="none" />
+               </svg>
+            </span> again.
           </h1>
-          <p className="text-lg sm:text-xl text-stone-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Snap a photo of any wine list or shelf, and get instant, personalized
-            recommendations based on your taste, budget, and what you're eating.
+          
+          <p className="text-lg sm:text-xl text-stone-300 max-w-2xl mx-auto mb-12 leading-relaxed font-light">
+            Scan any wine list or shelf. Get instant, personalized recommendations based on your unique palate, budget, and meal.
           </p>
+          
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to={user ? '/scan' : '/register'}
-              className="inline-flex items-center gap-2 bg-wine-800 text-white px-8 py-3.5 rounded-full text-base font-medium hover:bg-wine-900 transition-all hover:shadow-lg hover:shadow-wine-800/20"
+              className="group inline-flex items-center gap-3 bg-somm-red-900 text-champagne-100 px-8 py-4 rounded-full text-base font-medium hover:bg-somm-red-500 hover:text-white transition-all shadow-[0_4px_20px_-5px_rgba(120,53,67,0.4)] hover:shadow-[0_8px_30px_-5px_rgba(120,53,67,0.6)] border border-somm-red-500/30"
             >
-              <Camera className="w-5 h-5" />
-              Start scanning
+              <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              Start Scanning
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 text-stone-600 hover:text-stone-900 px-6 py-3.5 rounded-full text-base font-medium transition-colors"
+              className="inline-flex items-center gap-2 text-stone-400 hover:text-white px-6 py-4 rounded-full text-base font-medium transition-colors"
             >
               See how it works
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 opacity-50" />
             </a>
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-6 bg-white/50">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Features Grid */}
+      <section id="features" className="py-24 px-6 relative">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
                 icon: Camera,
-                title: 'Scan any wine list',
-                desc: 'Take a photo of a restaurant menu, wine shop shelf, or bottle label. Our AI reads and identifies every wine.',
+                title: 'Scan any list',
+                desc: 'Instantly identifies wines from any menu or shelf photo using advanced OCR.',
               },
               {
                 icon: Star,
-                title: 'Personalized picks',
-                desc: 'Set your preferences once -- favorite types, regions, and flavor profiles -- and get tailored recommendations every time.',
+                title: 'Know your palate',
+                desc: 'Our AI learns your tastes over time to recommend bottles you\'ll actually love.',
               },
               {
                 icon: Utensils,
                 title: 'Perfect pairings',
-                desc: "Tell us what you're eating and your budget. We'll find the wine that makes your meal unforgettable.",
+                desc: "Tell us what you're eating. We'll find the harmony between plate and glass.",
               },
-            ].map((feature) => (
-              <div key={feature.title} className="group p-8 rounded-2xl bg-white border border-stone-100 hover:border-wine-200 hover:shadow-lg hover:shadow-wine-800/5 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-wine-50 flex items-center justify-center mb-5 group-hover:bg-wine-100 transition-colors">
-                  <feature.icon className="w-6 h-6 text-wine-700" />
+            ].map((feature, i) => (
+              <div key={feature.title} className="group p-8 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 hover:border-champagne-400/20 hover:bg-white/[0.06] transition-all duration-500 hover:shadow-2xl hover:shadow-black/20">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-white/10">
+                  <feature.icon className="w-5 h-5 text-champagne-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-stone-900 mb-2">{feature.title}</h3>
-                <p className="text-stone-500 leading-relaxed text-sm">{feature.desc}</p>
+                <h3 className="font-serif text-xl text-white mb-3">{feature.title}</h3>
+                <p className="text-stone-400 leading-relaxed text-sm font-light">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="how-it-works" className="py-24 px-6">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 text-center mb-4">How it works</h2>
-          <p className="text-stone-500 text-center mb-16 max-w-lg mx-auto">Three simple steps to find your perfect bottle every time.</p>
-          <div className="space-y-12">
+      {/* How it Works / Social Proof */}
+      <section id="how-it-works" className="py-24 px-6 bg-wine-slate-900/30 border-y border-white/5 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="font-serif text-3xl sm:text-4xl text-white mb-4">The Accessible Insider</h2>
+            <p className="text-stone-400 max-w-lg mx-auto font-light">Demystifying wine, one scan at a time.</p>
+          </div>
+          
+          <div className="space-y-8">
             {[
               {
                 step: '01',
-                title: 'Set your preferences',
-                desc: 'Tell us what you love -- red or white, Old World or New, bold or delicate. Your profile helps us understand your palate.',
+                title: 'Tell us what you like',
+                desc: 'Red or white? Bold or delicate? Set your preferences once, and we handle the rest.',
               },
               {
                 step: '02',
-                title: 'Snap & scan',
-                desc: 'At a restaurant or shop, take a photo of the wine list or shelf. Our AI instantly reads and identifies every option available.',
+                title: 'Capture the moment',
+                desc: 'Snap a photo of a wine list at dinner or a shelf at the shop.',
               },
               {
                 step: '03',
-                title: 'Get your recommendation',
-                desc: 'Receive ranked picks with match scores, tasting notes, and food pairing suggestions -- all personalized to you.',
+                title: 'Drink with confidence',
+                desc: 'Get ranked recommendations with match scores and "why you\'ll love it" notes.',
               },
-            ].map((item) => (
-              <div key={item.step} className="flex gap-6 sm:gap-8 items-start">
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-wine-800 text-white flex items-center justify-center font-bold text-lg">
+            ].map((item, i) => (
+              <div key={item.step} className="flex items-center gap-8 group">
+                <div className="hidden sm:flex flex-shrink-0 w-16 h-16 rounded-full border border-white/10 items-center justify-center font-serif text-2xl text-champagne-400 group-hover:border-champagne-400/50 group-hover:scale-110 transition-all duration-500 bg-white/[0.02]">
                   {item.step}
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-stone-900 mb-2">{item.title}</h3>
-                  <p className="text-stone-500 leading-relaxed">{item.desc}</p>
+                <div className="flex-1 p-6 sm:p-8 rounded-2xl border border-transparent hover:bg-white/[0.03] hover:border-white/5 transition-all duration-500">
+                  <span className="sm:hidden text-xs font-bold text-champagne-400 uppercase tracking-widest mb-2 block">{item.step}</span>
+                  <h3 className="font-serif text-2xl text-white mb-2">{item.title}</h3>
+                  <p className="text-stone-400 font-light">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -145,35 +171,39 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-20 px-6 bg-wine-800">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Ready to find your next favorite bottle?
+      {/* CTA */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-wine-slate-950 via-somm-red-900/10 to-wine-slate-950 pointer-events-none" />
+        
+        <div className="max-w-3xl mx-auto text-center relative z-10">
+          <h2 className="font-serif text-4xl sm:text-5xl text-white mb-6">
+            Ready to order like a Pro?
           </h2>
-          <p className="text-wine-200 mb-8 text-lg">
-            Join Somm and start making confident wine decisions tonight.
+          <p className="text-stone-300 mb-10 text-lg font-light max-w-xl mx-auto">
+            Join Somm today and turning every wine list into a curated menu just for you.
           </p>
           <Link
             to={user ? '/scan' : '/register'}
-            className="inline-flex items-center gap-2 bg-white text-wine-800 px-8 py-3.5 rounded-full text-base font-semibold hover:bg-cream-100 transition-all hover:shadow-lg"
+            className="inline-flex items-center gap-3 bg-champagne-400 text-wine-slate-950 px-10 py-4 rounded-full text-base font-bold hover:bg-white transition-all shadow-[0_0_20px_-5px_rgba(212,196,163,0.4)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] transform hover:-translate-y-1"
           >
-            Get started free
+            Get Started Free
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
       </section>
 
-      <footer className="py-8 px-6 border-t border-stone-200/50 bg-cream-50">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-stone-400">
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-white/5 bg-wine-slate-950">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2 text-stone-500 hover:text-stone-300 transition-colors cursor-default">
             <Wine className="w-4 h-4" />
-            <span className="text-sm">Somm</span>
+            <span className="font-serif tracking-wide text-sm">Somm</span>
           </div>
-          <div className="flex items-center gap-6">
-            <Link to="/legal" className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+          <div className="flex items-center gap-8">
+            <Link to="/legal" className="text-xs text-stone-500 hover:text-champagne-100 transition-colors">
               Privacy & Terms
             </Link>
-            <p className="text-xs text-stone-400">Drink responsibly.</p>
+            <p className="text-xs text-stone-600">Drink responsibly.</p>
           </div>
         </div>
       </footer>

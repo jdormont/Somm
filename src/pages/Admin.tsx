@@ -83,7 +83,7 @@ export default function Admin() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-wine-800 animate-spin" />
+        <Loader2 className="w-6 h-6 text-champagne-400 animate-spin" />
       </div>
     );
   }
@@ -91,21 +91,21 @@ export default function Admin() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-wine-50 flex items-center justify-center">
-          <Shield className="w-5 h-5 text-wine-700" />
+        <div className="w-10 h-10 rounded-xl bg-somm-red-900/20 flex items-center justify-center border border-somm-red-500/20">
+          <Shield className="w-5 h-5 text-somm-red-500" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">User Management</h1>
-          <p className="text-sm text-stone-500">
+          <h1 className="text-2xl font-serif text-champagne-100">User Management</h1>
+          <p className="text-sm font-light text-stone-400">
             {profiles.length} user{profiles.length !== 1 ? 's' : ''} total
             {pendingCount > 0 && (
-              <span className="text-amber-600 font-medium"> / {pendingCount} pending</span>
+              <span className="text-amber-400 font-medium"> / {pendingCount} pending</span>
             )}
           </p>
         </div>
       </div>
 
-      <div className="flex gap-1 mb-6 bg-stone-100 rounded-xl p-1">
+      <div className="flex gap-1 mb-6 bg-white/5 rounded-xl p-1 border border-white/5">
         {([
           { key: 'pending' as FilterTab, label: 'Pending', icon: Clock, count: pendingCount },
           { key: 'approved' as FilterTab, label: 'Approved', icon: CheckCircle2, count: profiles.filter((p) => p.approved).length },
@@ -116,14 +116,14 @@ export default function Admin() {
             onClick={() => setFilter(key)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
               filter === key
-                ? 'bg-white text-stone-900 shadow-sm'
-                : 'text-stone-500 hover:text-stone-700'
+                ? 'bg-wine-slate-900/80 text-champagne-100 shadow-sm border border-white/10'
+                : 'text-stone-500 hover:text-stone-300 hover:bg-white/5'
             }`}
           >
             <Icon className="w-4 h-4" />
             {label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              filter === key ? 'bg-stone-100 text-stone-600' : 'bg-stone-200/60 text-stone-400'
+              filter === key ? 'bg-champagne-400/20 text-champagne-100' : 'bg-white/5 text-stone-500'
             }`}>
               {count}
             </span>
@@ -133,10 +133,10 @@ export default function Admin() {
 
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-stone-100 mb-4">
-            <Users className="w-6 h-6 text-stone-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/5 mb-4 border border-white/5">
+            <Users className="w-6 h-6 text-stone-500" />
           </div>
-          <p className="text-stone-500 text-sm">
+          <p className="text-stone-400 text-sm font-light">
             {filter === 'pending' ? 'No pending users' : 'No users found'}
           </p>
         </div>
@@ -149,25 +149,25 @@ export default function Admin() {
             return (
               <div
                 key={profile.id}
-                className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+                className="bg-wine-slate-900/40 backdrop-blur-sm border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:bg-wine-slate-900/60 transition-all hover:border-white/10"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-stone-900 truncate">
+                    <p className="text-sm font-medium text-champagne-100 truncate">
                       {profile.email}
                     </p>
                     {isSelf && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-wine-50 text-wine-700 font-medium flex-shrink-0">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-champagne-400/20 text-champagne-100 font-light flex-shrink-0 border border-champagne-400/20">
                         You
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-stone-400">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-stone-500 font-light">
                     <span>
                       Joined {new Date(profile.created_at).toLocaleDateString()}
                     </span>
                     <span className={`font-medium ${
-                      profile.role === 'admin' ? 'text-wine-700' : 'text-stone-500'
+                      profile.role === 'admin' ? 'text-somm-red-400' : 'text-stone-400'
                     }`}>
                       {profile.role}
                     </span>
@@ -181,7 +181,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateRole(profile.id, 'admin')}
                           disabled={isUpdating}
-                          className="text-xs px-4 py-2 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50"
+                          className="text-xs px-4 py-2 rounded-lg border border-white/10 text-stone-400 hover:bg-white/5 hover:text-stone-200 transition-colors disabled:opacity-50 font-medium"
                           title="Make admin"
                         >
                           <Shield className="w-3.5 h-3.5" />
@@ -190,7 +190,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateRole(profile.id, 'user')}
                           disabled={isUpdating}
-                          className="text-xs px-4 py-2 rounded-lg border border-wine-200 text-wine-700 bg-wine-50 hover:bg-wine-100 transition-colors disabled:opacity-50"
+                          className="text-xs px-4 py-2 rounded-lg border border-somm-red-500/20 text-somm-red-400 bg-somm-red-900/20 hover:bg-somm-red-900/40 transition-colors disabled:opacity-50 font-medium"
                           title="Remove admin"
                         >
                           <Shield className="w-3.5 h-3.5" />
@@ -201,7 +201,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateApproval(profile.id, false)}
                           disabled={isUpdating}
-                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 font-medium"
                         >
                           {isUpdating ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -214,7 +214,7 @@ export default function Admin() {
                         <button
                           onClick={() => updateApproval(profile.id, true)}
                           disabled={isUpdating}
-                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-emerald-600/90 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 font-medium shadow-sm"
                         >
                           {isUpdating ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -224,14 +224,15 @@ export default function Admin() {
                           Approve
                         </button>
                       )}
+                      
                       {profile.approved && (
                         <button
                           onClick={() => updateSharedKey(profile.id, !profile.use_shared_key)}
                           disabled={isUpdating}
-                          className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-colors disabled:opacity-50 ${
+                          className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-colors disabled:opacity-50 font-medium ${
                             profile.use_shared_key
-                              ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                              : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'
+                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
+                              : 'bg-white/5 border-white/10 text-stone-400 hover:bg-white/10 hover:text-stone-300'
                           }`}
                           title={profile.use_shared_key ? 'Using shared API key' : 'Using own API key'}
                         >

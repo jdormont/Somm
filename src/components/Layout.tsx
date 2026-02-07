@@ -25,38 +25,41 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
-      <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 bg-white border-r border-stone-200/80 z-40">
-        <div className="h-16 flex items-center px-6 border-b border-stone-100">
+    <div className="min-h-screen bg-wine-slate-950 text-stone-300 md:flex flex-row">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 bg-wine-slate-950 border-r border-white/5 z-40">
+        <div className="h-20 flex items-center px-6 border-b border-white/5">
           <NavLink to="/dashboard" className="flex items-center gap-2.5">
-            <Wine className="w-6 h-6 text-wine-800" />
-            <span className="font-semibold text-lg text-stone-900 tracking-tight">Somm</span>
+            <div className="p-1.5 rounded-full bg-somm-red-900/20 text-somm-red-500">
+               <Wine className="w-5 h-5" />
+            </div>
+            <span className="font-serif font-bold text-xl text-champagne-100 tracking-wide">Somm</span>
           </NavLink>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                   isActive
-                    ? 'bg-wine-50 text-wine-800'
-                    : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'
+                    ? 'bg-somm-red-900/10 text-champagne-100 shadow-[0_0_15px_-5px_rgba(212,196,163,0.1)] border border-somm-red-500/10'
+                    : 'text-stone-500 hover:text-stone-300 hover:bg-white/5 border border-transparent'
                 }`
               }
             >
-              <Icon className="w-5 h-5" />
+              <Icon className={`w-5 h-5 transition-colors ${ ({ isActive }: { isActive: boolean }) => isActive ? 'text-champagne-400' : 'text-stone-600' }`} />
               {label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-stone-100">
+        <div className="px-4 py-6 border-t border-white/5">
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-stone-500 hover:text-red-600 hover:bg-red-50 transition-all w-full"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-500 hover:text-somm-red-400 hover:bg-somm-red-900/10 transition-all w-full border border-transparent hover:border-somm-red-500/10"
           >
             <LogOut className="w-5 h-5" />
             Sign out
@@ -64,33 +67,28 @@ export default function Layout() {
         </div>
       </aside>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200/80 safe-area-bottom">
-        <nav className="flex items-center justify-around px-2 py-2">
-          {navItems.map(({ to, icon: Icon, label }) => (
+      {/* Mobile Bottom Nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-wine-slate-950/90 backdrop-blur-xl border-t border-white/10 safe-area-bottom">
+        <nav className="flex items-center justify-around px-2 py-3">
+          {navItems.slice(0, 5).map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                  isActive ? 'text-wine-800' : 'text-stone-400'
+                `flex flex-col items-center gap-1.5 px-2 py-1 rounded-xl text-[10px] font-medium transition-all ${
+                  isActive ? 'text-champagne-400' : 'text-stone-500'
                 }`
               }
             >
-              <Icon className="w-5 h-5" />
-              {label}
+              <Icon className={`w-6 h-6 ${ ({ isActive }: { isActive: boolean }) => isActive ? 'text-champagne-400 drop-shadow-[0_0_8px_rgba(212,196,163,0.3)]' : 'text-stone-600' }`} />
+              <span className="tracking-wide">{label}</span>
             </NavLink>
           ))}
-          <button
-            onClick={handleSignOut}
-            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium text-stone-400 hover:text-red-600 transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            Out
-          </button>
         </nav>
       </div>
 
-      <main className="flex-1 md:ml-64 pb-20 md:pb-0">
+      {/* Main Content Area */}
+      <main className="flex-1 md:ml-64 pb-24 md:pb-0 bg-wine-slate-950 min-h-screen">
         <Outlet />
       </main>
     </div>

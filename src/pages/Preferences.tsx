@@ -40,12 +40,12 @@ function TagGrid({
           <button
             key={option}
             onClick={() => onToggle(option)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
               isSelected
                 ? color === 'wine'
-                  ? 'bg-wine-800 text-white shadow-sm'
-                  : 'bg-red-100 text-red-700 border border-red-200'
-                : 'bg-white text-stone-600 border border-stone-200 hover:border-stone-300 hover:text-stone-800'
+                  ? 'bg-champagne-400 text-wine-900 shadow-sm shadow-champagne-400/20'
+                  : 'bg-red-500/20 text-red-200 border border-red-500/30'
+                : 'bg-white/5 text-stone-400 border border-white/10 hover:border-white/20 hover:text-stone-200 hover:bg-white/10'
             }`}
           >
             {isSelected && (color === 'wine' ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />)}
@@ -146,7 +146,7 @@ export default function Preferences() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-wine-800 animate-spin" />
+        <Loader2 className="w-6 h-6 text-champagne-400 animate-spin" />
       </div>
     );
   }
@@ -155,17 +155,17 @@ export default function Preferences() {
     <div className="max-w-2xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-wine-50 flex items-center justify-center">
-            <Heart className="w-5 h-5 text-wine-700" />
+          <div className="w-10 h-10 rounded-xl bg-somm-red-900/20 flex items-center justify-center border border-somm-red-500/20">
+            <Heart className="w-5 h-5 text-somm-red-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-stone-900">Your Preferences</h1>
-            <p className="text-sm text-stone-500">Help us understand your palate</p>
+            <h1 className="text-2xl font-serif text-champagne-100">Your Preferences</h1>
+            <p className="text-sm font-light text-stone-400">Help us understand your palate</p>
           </div>
         </div>
         <Link
           to="/knowledge"
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-wine-700 bg-wine-50 rounded-xl hover:bg-wine-100 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-champagne-100 bg-white/5 rounded-xl hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10"
         >
           <BookOpen size={16} />
           Learn
@@ -174,31 +174,31 @@ export default function Preferences() {
 
       <div className="space-y-10">
         <section>
-          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Wine Types</h2>
+          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Wine Types</h2>
           <p className="text-sm text-stone-500 mb-4">Select the types of wine you enjoy most.</p>
           <TagGrid options={WINE_TYPES} selected={wineTypes} onToggle={(v) => toggle(wineTypes, v, setWineTypes)} />
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Regions</h2>
+          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Regions</h2>
           <p className="text-sm text-stone-500 mb-4">Pick your favorite wine-producing regions.</p>
           <TagGrid options={REGIONS} selected={regions} onToggle={(v) => toggle(regions, v, setRegions)} />
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Flavor Profile</h2>
+          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Flavor Profile</h2>
           <p className="text-sm text-stone-500 mb-4">What flavors and characteristics do you prefer?</p>
           <TagGrid options={FLAVOR_PROFILES} selected={flavorProfiles} onToggle={(v) => toggle(flavorProfiles, v, setFlavorProfiles)} />
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Avoidances</h2>
+          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Avoidances</h2>
           <p className="text-sm text-stone-500 mb-4">Anything you'd rather skip?</p>
           <TagGrid options={AVOIDANCES} selected={avoidances} onToggle={(v) => toggle(avoidances, v, setAvoidances)} color="red" />
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Adventurousness</h2>
+          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Adventurousness</h2>
           <p className="text-sm text-stone-500 mb-4">How open are you to trying new or unexpected wines?</p>
           <div className="flex flex-col sm:flex-row gap-3">
             {([
@@ -209,14 +209,14 @@ export default function Preferences() {
               <button
                 key={option.value}
                 onClick={() => setAdventurousness(option.value)}
-                className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${
+                className={`flex-1 p-4 rounded-xl border text-left transition-all duration-300 ${
                   adventurousness === option.value
-                    ? 'border-wine-800 bg-wine-50'
-                    : 'border-stone-200 bg-white hover:border-stone-300'
+                    ? 'border-champagne-400 bg-champagne-400/10'
+                    : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
                 }`}
               >
-                <p className={`text-sm font-medium ${
-                  adventurousness === option.value ? 'text-wine-800' : 'text-stone-700'
+                <p className={`text-sm font-medium transition-colors ${
+                  adventurousness === option.value ? 'text-champagne-100' : 'text-stone-400'
                 }`}>
                   {option.label}
                 </p>
@@ -227,14 +227,14 @@ export default function Preferences() {
         </section>
 
         <section>
-          <h2 className="text-sm font-semibold text-stone-900 uppercase tracking-wider mb-3">Budget</h2>
+          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Budget</h2>
           <p className="text-sm text-stone-500 mb-6">Your typical price range per bottle in different settings.</p>
 
           <div className="space-y-5">
-            <div className="bg-white border border-stone-200 rounded-2xl p-5">
+            <div className="bg-wine-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-3">
                 <Store className="w-4 h-4 text-stone-500" />
-                <span className="text-sm font-medium text-stone-700">Store / Wine Shop</span>
+                <span className="text-sm font-medium text-champagne-100">Store / Wine Shop</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex-1">
@@ -250,10 +250,10 @@ export default function Preferences() {
                       }
                     }}
                     min={0}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-black/20 text-champagne-100 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
                   />
                 </div>
-                <div className="text-stone-300 hidden sm:block sm:mt-5">—</div>
+                <div className="text-stone-600 hidden sm:block sm:mt-5">—</div>
                 <div className="flex-1">
                   <label className="block text-xs text-stone-500 mb-1">Max ($)</label>
                   <input
@@ -267,20 +267,20 @@ export default function Preferences() {
                       }
                     }}
                     min={0}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-black/20 text-champagne-100 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-stone-200 rounded-2xl p-5">
+            <div className="bg-wine-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <UtensilsCrossed className="w-4 h-4 text-stone-500" />
-                  <span className="text-sm font-medium text-stone-700">Restaurant / Wine Bar</span>
+                  <span className="text-sm font-medium text-champagne-100">Restaurant / Wine Bar</span>
                 </div>
                 {!restaurantManuallyEdited.current && (
-                  <span className="text-xs text-stone-400">Auto ~2.5x store</span>
+                  <span className="text-xs text-stone-500">Auto ~2.5x store</span>
                 )}
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -294,10 +294,10 @@ export default function Preferences() {
                       setRestaurantBudgetMin(Number(e.target.value));
                     }}
                     min={0}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-black/20 text-champagne-100 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
                   />
                 </div>
-                <div className="text-stone-300 hidden sm:block sm:mt-5">—</div>
+                <div className="text-stone-600 hidden sm:block sm:mt-5">—</div>
                 <div className="flex-1">
                   <label className="block text-xs text-stone-500 mb-1">Max ($)</label>
                   <input
@@ -308,7 +308,7 @@ export default function Preferences() {
                       setRestaurantBudgetMax(Number(e.target.value));
                     }}
                     min={0}
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-black/20 text-champagne-100 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
                   />
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function Preferences() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-wine-800 text-white py-3 rounded-xl font-medium text-sm hover:bg-wine-900 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-somm-red-900/90 text-champagne-100 py-4 rounded-xl font-medium text-sm hover:bg-somm-red-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-somm-red-500/30 shadow-lg hover:shadow-somm-red-900/20 group"
         >
           {saving ? (
             <>
@@ -328,7 +328,7 @@ export default function Preferences() {
             </>
           ) : saved ? (
             <>
-              <Check className="w-4 h-4" />
+              <Check className="w-4 h-4 text-emerald-400" />
               Saved!
             </>
           ) : (

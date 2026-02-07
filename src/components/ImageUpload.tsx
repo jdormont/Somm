@@ -49,15 +49,16 @@ export default function ImageUpload({ onImageReady, imagePreview, onClear }: Ima
 
   if (imagePreview) {
     return (
-      <div className="relative rounded-2xl overflow-hidden border border-stone-200 bg-stone-50">
+      <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/20 group">
         <img
           src={imagePreview}
           alt="Wine list preview"
           className="w-full max-h-80 object-contain"
         />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
         <button
           onClick={onClear}
-          className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors"
+          className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-somm-red-900/80 rounded-full flex items-center justify-center text-white transition-colors backdrop-blur-sm border border-white/10"
         >
           <X className="w-4 h-4" />
         </button>
@@ -72,23 +73,23 @@ export default function ImageUpload({ onImageReady, imagePreview, onClear }: Ima
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 ${
+        className={`relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-300 ${
           isDragging
-            ? 'border-wine-800 bg-wine-50/50'
-            : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/50'
+            ? 'border-champagne-400 bg-champagne-400/10'
+            : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
         } ${processing ? 'opacity-50 pointer-events-none' : ''}`}
       >
         <div className="flex flex-col items-center gap-4 py-12 px-6">
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${
-            isDragging ? 'bg-wine-100' : 'bg-stone-100'
+            isDragging ? 'bg-champagne-400/20' : 'bg-white/5'
           }`}>
-            <ImageIcon className={`w-7 h-7 ${isDragging ? 'text-wine-700' : 'text-stone-400'}`} />
+            <ImageIcon className={`w-7 h-7 transition-colors ${isDragging ? 'text-champagne-400' : 'text-stone-500'}`} />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-stone-700">
+            <p className="text-sm font-medium text-champagne-100">
               {processing ? 'Processing image...' : 'Drop an image here, or click to browse'}
             </p>
-            <p className="text-xs text-stone-400 mt-1">
+            <p className="text-xs text-stone-500 mt-1">
               JPG, PNG up to 20MB
             </p>
           </div>
@@ -102,12 +103,12 @@ export default function ImageUpload({ onImageReady, imagePreview, onClear }: Ima
         />
       </div>
 
-      <div className="mt-3 flex justify-center">
+      <div className="mt-4 flex justify-center">
         <button
           onClick={() => cameraInputRef.current?.click()}
-          className="inline-flex items-center gap-2 text-sm font-medium text-wine-800 hover:text-wine-900 transition-colors px-4 py-2 rounded-xl hover:bg-wine-50"
+          className="inline-flex items-center gap-2 text-sm font-medium text-champagne-400 hover:text-white transition-colors px-4 py-2 rounded-xl hover:bg-white/5 group"
         >
-          <Camera className="w-4 h-4" />
+          <Camera className="w-4 h-4 group-hover:scale-110 transition-transform" />
           Use camera instead
         </button>
         <input

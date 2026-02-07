@@ -55,11 +55,11 @@ export default function Knowledge() {
 
   const getCategoryColor = (category: string) => {
     const colors = {
-      wine_type: 'text-purple-600 bg-purple-50 border-purple-100',
-      region: 'text-blue-600 bg-blue-50 border-blue-100',
-      grape: 'text-green-600 bg-green-50 border-green-100',
-      flavor: 'text-orange-600 bg-orange-50 border-orange-100',
-      general: 'text-gray-600 bg-gray-50 border-gray-100',
+      wine_type: 'text-purple-400 bg-purple-900/20 border-purple-500/20',
+      region: 'text-blue-400 bg-blue-900/20 border-blue-500/20',
+      grape: 'text-emerald-400 bg-emerald-900/20 border-emerald-500/20',
+      flavor: 'text-amber-400 bg-amber-900/20 border-amber-500/20',
+      general: 'text-stone-400 bg-stone-900/20 border-stone-500/20',
     };
     return colors[category as keyof typeof colors] || colors.general;
   };
@@ -98,7 +98,7 @@ export default function Knowledge() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-wine-800 animate-spin" />
+        <Loader2 className="w-6 h-6 text-champagne-400 animate-spin" />
       </div>
     );
   }
@@ -107,25 +107,25 @@ export default function Knowledge() {
     <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-wine-50 flex items-center justify-center">
-          <BookOpen className="w-5 h-5 text-wine-700" />
+        <div className="w-10 h-10 rounded-xl bg-somm-red-900/20 flex items-center justify-center border border-somm-red-500/20">
+          <BookOpen className="w-5 h-5 text-somm-red-500" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Wine Knowledge</h1>
-          <p className="text-sm text-stone-500">Learn about wines, regions, and flavors</p>
+          <h1 className="text-2xl font-serif text-champagne-100">Wine Knowledge</h1>
+          <p className="text-sm font-light text-stone-400">Learn about wines, regions, and flavors</p>
         </div>
       </div>
 
       {/* Search */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500" size={18} />
           <input
             type="text"
             placeholder="Search wine knowledge..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-wine-800/20 focus:border-wine-800 transition-all"
+            className="w-full pl-11 pr-4 py-3 rounded-xl border border-white/10 bg-wine-slate-900/50 text-champagne-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all backdrop-blur-md"
           />
         </div>
       </div>
@@ -138,8 +138,8 @@ export default function Knowledge() {
             onClick={() => setCategoryFilter(cat.value)}
             className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
               categoryFilter === cat.value
-                ? 'bg-wine-800 text-white shadow-sm'
-                : 'bg-white text-stone-600 border border-stone-200 hover:border-stone-300 hover:text-stone-800'
+                ? 'bg-champagne-400 text-wine-900 shadow-sm shadow-champagne-400/20'
+                : 'bg-white/5 text-stone-400 border border-white/10 hover:border-white/20 hover:text-stone-200 hover:bg-white/10'
             }`}
           >
             {cat.icon}
@@ -149,16 +149,16 @@ export default function Knowledge() {
       </div>
 
       {/* Results Count */}
-      <p className="text-sm text-stone-500 mb-4">
+      <p className="text-sm text-stone-500 mb-4 font-light">
         {filteredKnowledge.length} {filteredKnowledge.length === 1 ? 'result' : 'results'}
       </p>
 
       {/* Knowledge Cards */}
       {filteredKnowledge.length === 0 ? (
         <div className="text-center py-12">
-          <BookOpen className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-          <p className="text-stone-500">No results found</p>
-          <p className="text-sm text-stone-400 mt-1">Try adjusting your search or filters</p>
+          <BookOpen className="w-12 h-12 text-stone-600 mx-auto mb-3" />
+          <p className="text-stone-400">No results found</p>
+          <p className="text-sm text-stone-600 mt-1 font-light">Try adjusting your search or filters</p>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -166,7 +166,7 @@ export default function Knowledge() {
             <button
               key={item.id}
               onClick={() => setSelectedTerm(item.term)}
-              className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 text-left hover:border-wine-800 hover:shadow-md transition-all group"
+              className="bg-wine-slate-900/40 backdrop-blur-sm border border-white/5 rounded-xl p-4 sm:p-5 text-left hover:border-white/10 hover:bg-wine-slate-900/60 transition-all group"
             >
               <div className="flex items-start gap-3 sm:gap-4">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border ${getCategoryColor(item.category)}`}>
@@ -174,14 +174,14 @@ export default function Knowledge() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 mb-1">
-                    <h3 className="text-base sm:text-lg font-semibold text-stone-900 group-hover:text-wine-800 transition-colors">
+                    <h3 className="text-base sm:text-lg font-medium text-champagne-100 group-hover:text-champagne-400 transition-colors">
                       {item.title}
                     </h3>
                     <span className="text-xs font-medium text-stone-500 uppercase tracking-wide whitespace-nowrap">
                       {getCategoryLabel(item.category)}
                     </span>
                   </div>
-                  <p className="text-sm text-stone-600 leading-relaxed line-clamp-2">
+                  <p className="text-sm text-stone-400 leading-relaxed line-clamp-2 font-light">
                     {item.short_description}
                   </p>
                 </div>
