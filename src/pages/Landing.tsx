@@ -164,12 +164,17 @@ export default function Landing() {
       </section>
 
       <footer className="py-8 px-6 border-t border-stone-200/50 bg-cream-50">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-stone-400">
             <Wine className="w-4 h-4" />
             <span className="text-sm">Somm</span>
           </div>
-          <p className="text-xs text-stone-400">Drink responsibly.</p>
+          <div className="flex items-center gap-6">
+            <Link to="/legal" className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+              Privacy & Terms
+            </Link>
+            <p className="text-xs text-stone-400">Drink responsibly.</p>
+          </div>
         </div>
       </footer>
     </div>
