@@ -7,6 +7,7 @@ interface RecommendationCardProps {
   matchScore: number;
   reason?: string;
   onSelect?: () => void;
+  onViewDetails?: () => void;
   className?: string;
   priceRange?: string; // e.g. "$$" or "$20-30"
 }
@@ -18,6 +19,7 @@ export default function RecommendationCard({
   matchScore,
   reason = "A perfect match for your palate based on bold fruit notes.",
   onSelect,
+  onViewDetails,
   className = "",
   priceRange,
 }: RecommendationCardProps) {
@@ -62,10 +64,22 @@ export default function RecommendationCard({
         </div>
 
         {/* Footer / Action */}
-        <div className="mt-auto flex items-center justify-end">
+        <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
+          {onViewDetails && (
+            <button
+               onClick={(e) => {
+                 e.stopPropagation();
+                 onViewDetails();
+               }}
+               className="text-xs font-medium text-stone-400 hover:text-champagne-400 transition-colors underline decoration-stone-600 hover:decoration-champagne-400 underline-offset-4"
+            >
+              View Analysis
+            </button>
+          )}
+
           <button
             onClick={onSelect}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-somm-red-900 border border-somm-red-500/30 text-champagne-100 text-sm font-medium hover:bg-somm-red-500 hover:text-white hover:border-somm-red-500/50 transition-all duration-300 group-hover:translate-x-1"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-somm-red-900 border border-somm-red-500/30 text-champagne-100 text-sm font-medium hover:bg-somm-red-500 hover:text-white hover:border-somm-red-500/50 transition-all duration-300 group-hover:translate-x-1 shadow-lg shadow-black/20"
           >
             Select
             <ArrowRight className="w-4 h-4 ml-0.5" />

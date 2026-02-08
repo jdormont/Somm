@@ -4,8 +4,9 @@ import { ArrowLeft, Clock, Store, UtensilsCrossed, DollarSign, Wine, MessageSqua
 import { useAuth } from '../contexts/AuthContext';
 import RecommendationCard from '../components/RecommendationCard';
 import AddWineForm from '../components/AddWineForm';
+import WineDetailsModal from '../components/WineDetailsModal';
 import { useScan, useDeleteScan } from '../hooks/useScans';
-import { WineInput } from '../types';
+import { WineInput, WineRecommendation } from '../types';
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -24,6 +25,7 @@ export default function ScanDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedWine, setSelectedWine] = useState<WineInput | null>(null);
+  const [selectedWineDetails, setSelectedWineDetails] = useState<WineRecommendation | null>(null);
 
   const { data: session, isLoading, error } = useScan(id, user?.id);
   const deleteScan = useDeleteScan();
@@ -74,6 +76,13 @@ export default function ScanDetail() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
+      {selectedWineDetails && (
+        <WineDetailsModal
+          wine={selectedWineDetails}
+          onClose={() => setSelectedWineDetails(null)}
+        />
+      )}
+
       {selectedWine && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-lg">
@@ -173,6 +182,7 @@ export default function ScanDetail() {
                 priceRange={wine.price ? `$${wine.price}` : undefined}
                 className="w-full"
                 onSelect={() => handleSelectWine(wine)}
+                onViewDetails={() => setSelectedWineDetails(wine)}
               />
             ))}
           </div>

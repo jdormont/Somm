@@ -25,6 +25,12 @@ export interface WineRecommendation {
   tasting_notes: string;
   food_pairings: string[];
   profile_accuracy?: string;
+  structure?: {
+    body: 'Light' | 'Medium' | 'Full';
+    tannins: 'Low' | 'Medium' | 'High';
+    acidity: 'Low' | 'Medium' | 'High';
+    alcohol: 'Low' | 'Medium' | 'High';
+  };
 }
 
 export interface ScanSession {

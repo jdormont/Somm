@@ -1,11 +1,16 @@
 import { ScanLine, Loader2, Sparkles, DollarSign, MessageSquare, AlertCircle, Store, UtensilsCrossed, Wine } from 'lucide-react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import ImageUpload from '../components/ImageUpload';
 import RecommendationCard from '../components/RecommendationCard';
 import AddWineForm from '../components/AddWineForm';
+import WineDetailsModal from '../components/WineDetailsModal';
 import { useScannerLogic } from '../hooks/useScannerLogic';
+import type { WineRecommendation } from '../types';
 
 export default function Scanner() {
+  const [selectedWineDetails, setSelectedWineDetails] = useState<WineRecommendation | null>(null);
+
   const {
     state: {
       imageBase64,
@@ -54,6 +59,13 @@ export default function Scanner() {
             />
           </div>
         </div>
+      )}
+
+      {selectedWineDetails && (
+        <WineDetailsModal
+          wine={selectedWineDetails}
+          onClose={() => setSelectedWineDetails(null)}
+        />
       )}
 
       <div className="flex items-center gap-3 mb-8">
@@ -249,6 +261,7 @@ export default function Scanner() {
                 priceRange={wine.price ? `$${wine.price}` : undefined}
                 className="w-full"
                 onSelect={() => setSelectedWine(wine)}
+                onViewDetails={() => setSelectedWineDetails(wine)}
               />
             ))}
           </div>

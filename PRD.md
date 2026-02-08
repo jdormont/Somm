@@ -56,6 +56,21 @@ Somm is a personal wine advisor that eliminates the anxiety of choosing wine. Wh
 
 ---
 
+## Phase 1.5: Truth & Detail (Completed)
+
+### Reality-Grounded Analysis (Agentic Workflow)
+- **Problem**: Large Language Models can "hallucinate" wine facts (e.g., inventing a tasting note for a specific vintage).
+- **Solution**: A multi-step Agentic Workflow replaces the single-shot analysis:
+    1.  **Identify**: OCR extracts wine names from the image.
+    2.  **Research**: The system actively searches the web (via Tavily) for real-time technical sheets, critic reviews, and tasting notes for each identified wine.
+    3.  **Analyze**: The LLM uses this *verified* ground-truth data to generate recommendations, ensuring accuracy.
+
+### Wine Details View
+- **Structure Visualization**: Users can view the objective structure of any recommended wine (Body, Tannins, Acidity, Alcohol) visualized as progress bars.
+- **Deep Dive**: Access full analysis, matching reasoning, and tasting notes from both the active Scanner view and the Scan History.
+
+---
+
 ## Phase 2: Access Control (Completed)
 
 ### User Approval System
@@ -149,6 +164,7 @@ Somm is a personal wine advisor that eliminates the anxiety of choosing wine. Wh
 | Auth | Supabase Auth (email/password) |
 | Database | Supabase (PostgreSQL) with Row Level Security |
 | AI | OpenAI GPT-4o Vision via Supabase Edge Function |
+| Search Agent | Tavily API (for reality-grounding) |
 | Image Processing | Browser Canvas API (client-side compression) |
 | State | React Context (AuthContext) |
 

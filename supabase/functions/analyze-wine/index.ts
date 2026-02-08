@@ -178,55 +178,128 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const imageUrl = image_base64.startsWith("data:")
+      ? image_base64
+      : `data:image/jpeg;base64,${image_base64}`;
+
+    // -------------------------------------------------------------------------
+    // STEP 1: IDENTIFY WINES (OCR)
+    // -------------------------------------------------------------------------
+    const identificationPrompt = `
+    Identify all wines in this image. Return ONLY a JSON object with this structure:
+    {
+      "wines": [
+        { "name": "Producer + Name", "vintage": "Year" or null }
+      ]
+    }
+    Ignore non-wine text. If no wines are found, return { "wines": [] }.
+    `;
+
+    const ocrResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: identificationPrompt },
+              { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!ocrResponse.ok) throw new Error("Failed to identify wines");
+    const ocrData = await ocrResponse.json();
+    const winesFound = JSON.parse(ocrData.choices[0].message.content).wines || [];
+
+    // -------------------------------------------------------------------------
+    // STEP 2: RESEARCH WINES (TAVILY AGENT)
+    // -------------------------------------------------------------------------
+    const tavilyKey = Deno.env.get("TAVILY_API_KEY");
+    let researchContext = "";
+    
+    // Only search if we found wines and have a key
+    if (winesFound.length > 0 && tavilyKey) {
+       // Search for top 5 wines max to save time/tokens
+       const winesToSearch = winesFound.slice(0, 5); 
+       
+       const searchPromises = winesToSearch.map(async (wine: any) => {
+          const query = `${wine.name} ${wine.vintage || ""} wine tech sheet tasting notes`;
+          try {
+             const resp = await fetch("https://api.tavily.com/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                   api_key: tavilyKey,
+                   query: query,
+                   search_depth: "basic",
+                   max_results: 1,
+                })
+             });
+             const data = await resp.json();
+             const content = data.results?.[0]?.content || "No info found.";
+             return `WINE: ${wine.name} (${wine.vintage || "NV"})\nFACTS: ${content}\n\n`;
+          } catch (e) {
+             return `WINE: ${wine.name}\nFACTS: Search failed.\n\n`;
+          }
+       });
+
+       const results = await Promise.all(searchPromises);
+       researchContext = results.join("");
+    }
+
+    // -------------------------------------------------------------------------
+    // STEP 3: ANALYZE & RECOMMEND (RAG)
+    // -------------------------------------------------------------------------
     const userProfile = buildUserProfile(preferences, wine_memories || []);
     const constraints = buildConstraints(budget_min, budget_max, context || "store", notes);
-
+    
+    // Original system prompt + new instructions
     const systemPrompt = `
-### ROLE & OBJECTIVE
-You are "Somm," an expert, honest AI Sommelier. Your goal is to analyze wine lists and provide recommendations.
+### ROLE
+You are "Somm," an expert AI Sommelier.
 
-### CRITICAL RULE: TRUTH OVER PERSUASION
-**NEVER** fabricate wine characteristics to fit the user's preferences.
-- If the user likes "Bold Napa Cabs" but the best wine on the list is a "Light Pinot Noir," you must describe the Pinot Noir accurately (Light, Acidic) and explain WHY it is the best available option, or why it might be a nice change of pace.
-- Do not describe a light wine as "full-bodied" just because the user likes full-bodied wines.
+### OBJECTIVE
+Analyze the wine list and user profile to provide personalized recommendations.
+**CRITICAL:** You have been provided with VERIFIED EXTERNAL DATA about these wines.
+Use this data to determine the body, tannins, acidity, and flavor profiles.
+Do NOT guess. If the search data contradicts your internal knowledge, prefer the search data.
 
-### 1. ANALYSIS PHASE (Internal Monologue)
-For each detected wine, first access your internal knowledge base to determine its **objective** profile:
-- Body (Light to Full)
-- Tannins (Low to High)
-- Acidity (Low to High)
-- Key Tasting Notes (e.g., Cherry, Leather, Butter, Citrus)
-*Only after determining the facts, compare them to the [USER_PROFILE].*
+### 1. ANALYSIS
+Compare verified wine facts against:
+${userProfile}
 
-### 2. SCORING & CATEGORIZATION
-- **Safe Bet:** High overlap between [WINE_FACTS] and [USER_PROFILE].
-- **Adventurous Pick:** Good quality wine, but the profile differs from the user's usual (e.g., "This is lighter than your usual reds, but has the complexity you enjoy").
-- **Do Not Recommend:** Wines that directly conflict with "Avoidances" or are poor quality.
-
-### 3. OUTPUT FORMAT (JSON ONLY)
+### 2. OUTPUT FORMAT (JSON ONLY)
 {
   "wines_detected": [
-    {
-      "name": "string",
-      "producer": "string or null",
-      "vintage": "string or null",
-      "type": "red|white|rosé|sparkling|dessert|fortified",
-      "region": "string or null",
-      "price": number or null
-    }
+    { "name": "string", "producer": "string", "vintage": "string", "type": "red|white|...", "region": "string", "price": numberOrNull }
   ],
   "recommendations": [
     {
       "rank": 1,
       "name": "string",
-      "producer": "string or null",
-      "vintage": "string or null",
-      "type": "red|white|rosé|sparkling|dessert|fortified",
-      "region": "string or null",
-      "price": number or null,
+      "producer": "string",
+      "vintage": "string",
+      "type": "string",
+      "region": "string",
+      "price": numberOrNull,
       "match_score": 0-100,
-      "profile_accuracy": "string summarizing the objective profile (e.g. 'Medium-bodied, fresh, fruit-forward, no oak')",
-      "reasoning": "string explaining why matches/differs from user profile",
+      "profile_accuracy": "string",
+      "structure": {
+        "body": "Light|Medium|Full",
+        "tannins": "Low|Medium|High",
+        "acidity": "Low|Medium|High",
+        "alcohol": "Low|Medium|High"
+      },
+      "reasoning": "string explaining why matches/differs",
       "tasting_notes": "string",
       "food_pairings": ["string"],
       "critic_info": "string or null"
@@ -236,24 +309,19 @@ For each detected wine, first access your internal knowledge base to determine i
 }
 `;
 
-    const userPrompt = `Analyze this wine list/bottle image and recommend the best options for me.
+    const userPrompt = `
+    Analyze this wine list.
+    
+    [VERIFIED WINE FACTS FROM WEB SEARCH]
+    ${researchContext ? researchContext : "No search data available. Rely on internal knowledge."}
+    
+    [USER CONSTRAINTS]
+    ${constraints}
+    
+    [IMAGE]
+    (See attached)`;
 
-${userProfile}
-
-${constraints}
-
-[WINE_LIST_SOURCE]
-(See attached image - identify all wines visible)
-
-Please study my profile and history carefully, then provide your personalized top recommendations from this wine list.`;
-
-    const imageUrl = image_base64.startsWith("data:")
-      ? image_base64
-      : `data:image/jpeg;base64,${image_base64}`;
-
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
+    const finalResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -267,66 +335,28 @@ Please study my profile and history carefully, then provide your personalized to
               role: "user",
               content: [
                 { type: "text", text: userPrompt },
-                {
-                  type: "image_url",
-                  image_url: { url: imageUrl, detail: "high" },
-                },
+                { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
               ],
             },
           ],
-          max_tokens: 4096,
-          temperature: 0.3,
+          response_format: { type: "json_object" },
+          temperature: 0.2, // Lower temperature for more factual adherence
         }),
-      }
-    );
+    });
 
-    if (!openaiResponse.ok) {
-      const errBody = await openaiResponse.text();
-      return new Response(
-        JSON.stringify({
-          error: `OpenAI API error: ${openaiResponse.status}`,
-          details: errBody,
-        }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (!finalResponse.ok) {
+       const err = await finalResponse.text();
+       throw new Error(`Final analysis failed: ${err}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    const content = openaiData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return new Response(
-        JSON.stringify({ error: "No response from AI model." }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    let parsed;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-    } catch {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to parse AI response.",
-          raw: content,
-        }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    const finalData = await finalResponse.json();
+    const content = finalData.choices[0].message.content;
+    const parsed = JSON.parse(content);
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (err) {
     return new Response(
       JSON.stringify({
