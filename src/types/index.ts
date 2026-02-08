@@ -24,6 +24,7 @@ export interface WineRecommendation {
   reasoning: string;
   tasting_notes: string;
   food_pairings: string[];
+  profile_accuracy?: string;
 }
 
 export interface ScanSession {
