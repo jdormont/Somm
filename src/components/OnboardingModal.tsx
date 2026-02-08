@@ -326,7 +326,17 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-wine-slate-950 border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-lg bg-wine-slate-950 border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 relative">
+        <button
+          onClick={() => {
+            onComplete();
+            navigate('/scan');
+          }}
+          className="absolute top-4 right-4 p-2 text-stone-500 hover:text-white transition-colors"
+          aria-label="Close onboarding"
+        >
+          <X className="w-5 h-5" />
+        </button>
         
         {step > 0 && (
           <div className="flex justify-between items-center mb-6">
