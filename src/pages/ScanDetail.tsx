@@ -80,12 +80,12 @@ export default function ScanDetail() {
             <AddWineForm
               initialData={{
                 name: selectedWine.name,
-                producer: selectedWine.producer,
-                vintage: selectedWine.vintage,
+                producer: selectedWine.producer || undefined,
+                vintage: selectedWine.vintage || undefined,
                 type: selectedWine.type || 'Red',
-                region: selectedWine.region,
-                price: selectedWine.price,
-                notes: selectedWine.tasting_notes,
+                region: selectedWine.region || undefined,
+                price: selectedWine.price || undefined,
+                notes: selectedWine.notes || undefined,
               }}
               onAdd={() => {
                 setSelectedWine(null);

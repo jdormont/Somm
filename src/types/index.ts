@@ -47,7 +47,9 @@ export interface ScanResult {
 
 export interface ScanRequest {
   image_base64: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   preferences: any; // Complex object, keeping as any for now to avoid deep nesting issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wine_memories: any[]; // Complex object
   budget_min: number;
   budget_max: number;
