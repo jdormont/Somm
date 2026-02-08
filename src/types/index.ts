@@ -63,6 +63,7 @@ export interface ScanRequest {
   context: string;
   notes: string;
   openai_api_key?: string | null;
+  food_context?: string;
 }
 
 export interface WineInput {

@@ -32,6 +32,7 @@ interface AnalyzeRequest {
   budget_max: number;
   context: "store" | "restaurant";
   notes: string;
+  food_context?: string;
   openai_api_key?: string;
 }
 
@@ -86,7 +87,7 @@ function buildUserProfile(
   return lines.join("\n");
 }
 
-function buildConstraints(budget_min: number, budget_max: number, context: string, notes: string): string {
+function buildConstraints(budget_min: number, budget_max: number, context: string, notes: string, food_context?: string): string {
   const lines: string[] = ["[CURRENT_CONSTRAINTS]"];
 
   const setting = context === "restaurant" ? "Restaurant / Wine Bar" : "Store / Wine Shop";
@@ -96,9 +97,18 @@ function buildConstraints(budget_min: number, budget_max: number, context: strin
     const priceNote = context === "restaurant"
       ? " (restaurant pricing — expect markup over retail)"
       : " (retail pricing)";
-    lines.push(`* **Budget:** $${budget_min} - $${budget_max} USD${priceNote}`);
+      
+    // Apply 8% variance for the AI's consideration
+    const adjustedMin = Math.max(0, Math.floor(budget_min * 0.92));
+    const adjustedMax = Math.ceil(budget_max * 1.08);
+    
+    lines.push(`* **Budget:** User selected $${budget_min} - $${budget_max}. You may recommend wines from $${adjustedMin} up to $${adjustedMax} if the value/match is exceptional.${priceNote}`);
   } else {
     lines.push("* **Budget:** No specific budget");
+  }
+
+  if (food_context) {
+    lines.push(`* **FOOD PAIRING (PRIORITY):** ${food_context}`);
   }
 
   if (notes) {
@@ -128,6 +138,7 @@ Deno.serve(async (req: Request) => {
       budget_max,
       context,
       notes,
+      food_context,
     } = body;
 
     // Determine which API key to use
@@ -260,7 +271,7 @@ Deno.serve(async (req: Request) => {
     // STEP 3: ANALYZE & RECOMMEND (RAG)
     // -------------------------------------------------------------------------
     const userProfile = buildUserProfile(preferences, wine_memories || []);
-    const constraints = buildConstraints(budget_min, budget_max, context || "store", notes);
+    const constraints = buildConstraints(budget_min, budget_max, context || "store", notes, food_context);
     
     // Original system prompt + new instructions
     const systemPrompt = `
@@ -272,6 +283,15 @@ Analyze the wine list and user profile to provide personalized recommendations.
 **CRITICAL:** You have been provided with VERIFIED EXTERNAL DATA about these wines.
 Use this data to determine the body, tannins, acidity, and flavor profiles.
 Do NOT guess. If the search data contradicts your internal knowledge, prefer the search data.
+
+### RECOMMENDATION LOGIC & PRIORITIES
+1. **HARD FILTERS**: Exclude wines on the "Avoidance" list or significantly outside the adjusted budget.
+2. **CONTEXT IS KING**: If a "FOOD PAIRING" is specified, prioritize wines that pair naturally with that food, even if they deviate slightly from general style preferences.
+   - *Example: User loves big Cabs but is eating Oysters -> Recommend a crisp White or Champagne, explaining the pairing.*
+3. **HISTORY & TASTE**: If no specific food context, align closely with "Loves", "History", and Flavor Profile preferences.
+4. **ADVENTUROUSNESS**: 
+   - Low: Stick to safe matches (known regions/grapes).
+   - High: Suggest surprising but suitable choices (e.g., Orange wine for pork).
 
 ### 1. ANALYSIS
 Compare verified wine facts against:

@@ -41,6 +41,12 @@ describe('Scanner Integration', () => {
     expect(screen.getByPlaceholderText('Min')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Max')).toBeInTheDocument();
   });
+
+  it('displays eating input', () => {
+    renderWithProviders(<Scanner />);
+    expect(screen.getByText('What are you eating?')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/grilled steak/i)).toBeInTheDocument();
+  });
   
   it('displays context toggle', () => {
     renderWithProviders(<Scanner />);

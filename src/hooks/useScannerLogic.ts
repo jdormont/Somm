@@ -19,6 +19,7 @@ export function useScannerLogic() {
   const [restaurantBudgetMin, setRestaurantBudgetMin] = useState<number | ''>(38);
   const [restaurantBudgetMax, setRestaurantBudgetMax] = useState<number | ''>(125);
   const [notes, setNotes] = useState('');
+  const [foodPairing, setFoodPairing] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [selectedWine, setSelectedWine] = useState<WineInput | null>(null);
@@ -87,7 +88,7 @@ export function useScannerLogic() {
           .select('name, producer, vintage, type, region, rating, notes')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(30),
+          .limit(100),
       ]);
 
       const preferences = {
@@ -108,6 +109,7 @@ export function useScannerLogic() {
           budget_max: finalBudgetMax,
           context,
           notes,
+          food_context: foodPairing,
           openai_api_key: apiKey,
         },
       });
@@ -120,7 +122,7 @@ export function useScannerLogic() {
         budget_min: finalBudgetMin,
         budget_max: finalBudgetMax,
         context,
-        notes,
+        notes: foodPairing ? `[Food: ${foodPairing}] ${notes}` : notes,
         wines_detected: scanResult.wines_detected || [],
         recommendations: scanResult.recommendations || [],
         summary: scanResult.summary || '',
@@ -136,6 +138,7 @@ export function useScannerLogic() {
     setResult(null);
     setError('');
     setNotes('');
+    setFoodPairing('');
   };
 
   return {
@@ -145,6 +148,7 @@ export function useScannerLogic() {
       budgetMin,
       budgetMax,
       notes,
+      foodPairing,
       error,
       result,
       selectedWine,
@@ -156,6 +160,7 @@ export function useScannerLogic() {
       setBudgetMin,
       setBudgetMax,
       setNotes,
+      setFoodPairing,
       handleAnalyze,
       handleNewScan,
       setSelectedWine,

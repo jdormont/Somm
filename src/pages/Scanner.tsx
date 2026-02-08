@@ -18,6 +18,7 @@ export default function Scanner() {
       budgetMin,
       budgetMax,
       notes,
+      foodPairing,
       error,
       result,
       selectedWine,
@@ -29,6 +30,7 @@ export default function Scanner() {
       setBudgetMin,
       setBudgetMax,
       setNotes,
+      setFoodPairing,
       handleAnalyze,
       handleNewScan,
       setSelectedWine,
@@ -171,6 +173,22 @@ export default function Scanner() {
           <section className="bg-wine-slate-900/50 backdrop-blur-md rounded-2xl border border-white/5 p-6">
             <label className="block text-sm font-medium text-champagne-100 mb-4 uppercase tracking-wider">
               <span className="flex items-center gap-2">
+                <UtensilsCrossed className="w-4 h-4 text-stone-400" />
+                What are you eating?
+              </span>
+            </label>
+            <input
+              type="text"
+              value={foodPairing}
+              onChange={(e) => setFoodPairing(e.target.value)}
+              placeholder="e.g., Grilled steak, spicy thai curry, oysters..."
+              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-champagne-100 placeholder:text-stone-600 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
+            />
+          </section>
+
+          <section className="bg-wine-slate-900/50 backdrop-blur-md rounded-2xl border border-white/5 p-6">
+            <label className="block text-sm font-medium text-champagne-100 mb-4 uppercase tracking-wider">
+              <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-stone-400" />
                 Additional Notes
               </span>
@@ -178,7 +196,7 @@ export default function Scanner() {
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., Pairing with grilled salmon, celebrating an anniversary, want something adventurous..."
+              placeholder="e.g., Celebrating an anniversary, want something adventurous, prefer organic..."
               rows={3}
               className="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-champagne-100 placeholder:text-stone-600 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm resize-none backdrop-blur-sm"
             />
