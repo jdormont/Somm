@@ -1,29 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ScanLine, Clock, Wine, DollarSign, Loader2, ArrowRight, Heart, Settings, Search, X, Store, UtensilsCrossed, TrendingUp, MessageSquare } from 'lucide-react';
+import { ScanLine, Clock, Wine, DollarSign, Loader2, ArrowRight, Heart, Settings, Search, X, Store, UtensilsCrossed, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-
-interface ScanSession {
-  id: string;
-  budget_min: number;
-  budget_max: number;
-  context: string;
-  notes: string;
-  wines_detected: Array<{ name: string; type: string }>;
-  recommendations: Array<{
-    name: string;
-    match_score: number;
-    type: string;
-    region: string | null;
-    price: number | null;
-  }>;
-  summary: string;
-  created_at: string;
-}
-
-type DateFilter = 'all' | 'week' | 'month' | '3months';
-type ContextFilter = 'all' | 'store' | 'restaurant';
+import { ScanSession, ContextType, DateFilter } from '../types';
+import { useScans } from '../hooks/useScans';
+import { useQuery } from '@tanstack/react-query';
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -64,40 +46,29 @@ function matchesSearch(session: ScanSession, query: string): boolean {
 export default function Dashboard() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [sessions, setSessions] = useState<ScanSession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasPrefs, setHasPrefs] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(false);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [contextFilter, setContextFilter] = useState<ContextFilter>('all');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
-
-  useEffect(() => {
-    if (user) loadData();
-  }, [user, profile]);
-
-  const loadData = async () => {
-    if (!user) return;
-
-    const [sessionsRes, prefsRes] = await Promise.all([
-      supabase
-        .from('scan_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
-      supabase
+  
+  // Data Fetching with React Query
+  const { data: sessions = [], isLoading: loadingScans } = useScans(user?.id);
+  
+  // Prefs Check (Separate query for simple boolean check)
+  const { data: hasPrefs, isLoading: loadingPrefs } = useQuery({
+    queryKey: ['hasPrefs', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
         .from('user_preferences')
         .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-    ]);
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
-    setSessions(sessionsRes.data || []);
-    setHasPrefs(!!prefsRes.data);
-    setHasApiKey(!!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key);
-    setLoading(false);
-  };
+  const hasApiKey = !!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key;
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [contextFilter, setContextFilter] = useState<ContextType | 'all'>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
 
   const filtered = useMemo(() => {
     let result = sessions;
@@ -130,7 +101,7 @@ export default function Dashboard() {
 
   const hasActiveFilters = contextFilter !== 'all' || dateFilter !== 'all' || searchQuery.trim() !== '';
 
-  if (loading) {
+  if (loadingScans || loadingPrefs) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 text-somm-red-500 animate-spin" />
@@ -251,7 +222,7 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                {(['all', 'store', 'restaurant'] as ContextFilter[]).map((ctx) => (
+                {(['all', 'store', 'restaurant'] as (ContextType | 'all')[]).map((ctx) => (
                   <button
                     key={ctx}
                     onClick={() => setContextFilter(contextFilter === ctx && ctx !== 'all' ? 'all' : ctx)}

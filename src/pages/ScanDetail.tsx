@@ -1,44 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Store, UtensilsCrossed, DollarSign, Wine, MessageSquare, Loader2, Trash2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import RecommendationCard from '../components/RecommendationCard';
 import AddWineForm from '../components/AddWineForm';
-
-interface WineRecommendation {
-  rank: number;
-  name: string;
-  producer: string | null;
-  vintage: string | null;
-  type: string;
-  region: string | null;
-  price: number | null;
-  match_score: number;
-  critic_info: string | null;
-  reasoning: string;
-  tasting_notes: string;
-  food_pairings: string[];
-}
-
-interface ScanSession {
-  id: string;
-  budget_min: number;
-  budget_max: number;
-  context: string;
-  notes: string;
-  wines_detected: Array<{
-    name: string;
-    producer: string | null;
-    vintage: string | null;
-    type: string;
-    region: string | null;
-    price: number | null;
-  }>;
-  recommendations: WineRecommendation[];
-  summary: string;
-  created_at: string;
-}
+import { useScan, useDeleteScan } from '../hooks/useScans';
+import { WineInput } from '../types';
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -56,40 +23,26 @@ export default function ScanDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [session, setSession] = useState<ScanSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-  const [selectedWine, setSelectedWine] = useState<any | null>(null);
+  const [selectedWine, setSelectedWine] = useState<WineInput | null>(null);
 
-  useEffect(() => {
-    if (user && id) loadSession();
-  }, [user, id]);
-
-  const loadSession = async () => {
-    if (!user || !id) return;
-    const { data } = await supabase
-      .from('scan_sessions')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    setSession(data);
-    setLoading(false);
-  };
+  const { data: session, isLoading, error } = useScan(id, user?.id);
+  const deleteScan = useDeleteScan();
 
   const handleDelete = async () => {
     if (!session) return;
-    setDeleting(true);
-    await supabase.from('scan_sessions').delete().eq('id', session.id);
-    navigate('/dashboard', { replace: true });
+    try {
+      await deleteScan.mutateAsync(session.id);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
   };
 
-  const handleSelectWine = (wine: any) => {
+  const handleSelectWine = (wine: WineInput) => {
     setSelectedWine(wine);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 text-somm-red-500 animate-spin" />
@@ -97,7 +50,7 @@ export default function ScanDetail() {
     );
   }
 
-  if (!session) {
+  if (error || !session) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="text-center py-16">
@@ -262,11 +215,11 @@ export default function ScanDetail() {
       <div className="mt-12 pt-8 border-t border-white/5 flex justify-center">
         <button
           onClick={handleDelete}
-          disabled={deleting}
+          disabled={deleteScan.isPending}
           className="group flex items-center gap-2 text-sm text-stone-600 hover:text-red-400 transition-colors px-4 py-2 rounded-full hover:bg-red-900/10"
         >
           <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          {deleting ? 'Deleting...' : 'Delete this scan'}
+          {deleteScan.isPending ? 'Deleting...' : 'Delete this scan'}
         </button>
       </div>
     </div>

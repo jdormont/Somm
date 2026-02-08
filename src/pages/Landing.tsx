@@ -117,7 +117,7 @@ export default function Landing() {
                 title: 'Perfect pairings',
                 desc: "Tell us what you're eating. We'll find the harmony between plate and glass.",
               },
-            ].map((feature, i) => (
+            ].map((feature) => (
               <div key={feature.title} className="group p-8 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 hover:border-champagne-400/20 hover:bg-white/[0.06] transition-all duration-500 hover:shadow-2xl hover:shadow-black/20">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-white/10">
                   <feature.icon className="w-5 h-5 text-champagne-400" />
@@ -155,7 +155,7 @@ export default function Landing() {
                 title: 'Drink with confidence',
                 desc: 'Get ranked recommendations with match scores and "why you\'ll love it" notes.',
               },
-            ].map((item, i) => (
+            ].map((item) => (
               <div key={item.step} className="flex items-center gap-8 group">
                 <div className="hidden sm:flex flex-shrink-0 w-16 h-16 rounded-full border border-white/10 items-center justify-center font-serif text-2xl text-champagne-400 group-hover:border-champagne-400/50 group-hover:scale-110 transition-all duration-500 bg-white/[0.02]">
                   {item.step}

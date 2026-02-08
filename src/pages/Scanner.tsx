@@ -1,174 +1,35 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ScanLine, Loader2, Sparkles, DollarSign, MessageSquare, AlertCircle, Store, UtensilsCrossed, Wine } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from '../components/ImageUpload';
 import RecommendationCard from '../components/RecommendationCard';
 import AddWineForm from '../components/AddWineForm';
-
-const API_KEY_STORAGE_KEY = 'somm_openai_api_key';
-
-interface ScanResult {
-  wines_detected: Array<{
-    name: string;
-    producer: string | null;
-    vintage: string | null;
-    type: string;
-    region: string | null;
-    price: number | null;
-  }>;
-  recommendations: Array<{
-    rank: number;
-    name: string;
-    producer: string | null;
-    vintage: string | null;
-    type: string;
-    region: string | null;
-    price: number | null;
-    match_score: number;
-    critic_info: string | null;
-    reasoning: string;
-    tasting_notes: string;
-    food_pairings: string[];
-  }>;
-  summary: string;
-}
+import { useScannerLogic } from '../hooks/useScannerLogic';
 
 export default function Scanner() {
-  const { user, session, profile } = useAuth();
-  const navigate = useNavigate();
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [context, setContext] = useState<'store' | 'restaurant'>('store');
-  const [storeBudgetMin, setStoreBudgetMin] = useState<number | ''>(15);
-  const [storeBudgetMax, setStoreBudgetMax] = useState<number | ''>(50);
-  const [restaurantBudgetMin, setRestaurantBudgetMin] = useState<number | ''>(38);
-  const [restaurantBudgetMax, setRestaurantBudgetMax] = useState<number | ''>(125);
-  const [notes, setNotes] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [selectedWine, setSelectedWine] = useState<any | null>(null);
-
-  const budgetMin = context === 'store' ? storeBudgetMin : restaurantBudgetMin;
-  const budgetMax = context === 'store' ? storeBudgetMax : restaurantBudgetMax;
-  const setBudgetMin = context === 'store' ? setStoreBudgetMin : setRestaurantBudgetMin;
-  const setBudgetMax = context === 'store' ? setStoreBudgetMax : setRestaurantBudgetMax;
-
-  useEffect(() => {
-    loadDefaults();
-  }, [user]);
-
-  const loadDefaults = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('user_preferences')
-      .select('default_budget_min, default_budget_max, restaurant_budget_min, restaurant_budget_max')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (data) {
-      setStoreBudgetMin(data.default_budget_min ?? 15);
-      setStoreBudgetMax(data.default_budget_max ?? 50);
-      setRestaurantBudgetMin(data.restaurant_budget_min ?? 38);
-      setRestaurantBudgetMax(data.restaurant_budget_max ?? 125);
+  const {
+    state: {
+      imageBase64,
+      context,
+      budgetMin,
+      budgetMax,
+      notes,
+      error,
+      result,
+      selectedWine,
+      analyzing
+    },
+    actions: {
+      setImageBase64,
+      setContext,
+      setBudgetMin,
+      setBudgetMax,
+      setNotes,
+      handleAnalyze,
+      handleNewScan,
+      setSelectedWine,
+      navigate
     }
-  };
-
-  const handleAnalyze = async () => {
-    if (!imageBase64 || !user || !session) return;
-
-    const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-    
-    // Only require local API key if not using shared key
-    if (!apiKey && !profile?.use_shared_key) {
-      setError('Please add your OpenAI API key in Settings first.');
-      return;
-    }
-
-    setAnalyzing(true);
-    setError('');
-    setResult(null);
-
-    // Calculate final budget values, defaulting to 0 if empty
-    const finalBudgetMin = budgetMin === '' ? 0 : budgetMin;
-    const finalBudgetMax = budgetMax === '' ? 0 : budgetMax;
-
-    try {
-      const [{ data: prefs }, { data: memories }] = await Promise.all([
-        supabase
-          .from('user_preferences')
-          .select('wine_types, regions, flavor_profiles, avoidances, adventurousness')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('wine_memories')
-          .select('name, producer, vintage, type, region, rating, notes')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(30),
-      ]);
-
-      const preferences = {
-        wine_types: prefs?.wine_types || [],
-        regions: prefs?.regions || [],
-        flavor_profiles: prefs?.flavor_profiles || [],
-        avoidances: prefs?.avoidances || [],
-        adventurousness: prefs?.adventurousness || 'medium',
-      };
-
-      const { data, error: functionError } = await supabase.functions.invoke('analyze-wine', {
-        body: {
-          image_base64: imageBase64,
-          preferences,
-          wine_memories: memories || [],
-          budget_min: finalBudgetMin,
-          budget_max: finalBudgetMax,
-          context,
-          notes,
-          openai_api_key: apiKey,
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (functionError) {
-        if (functionError.status === 401) {
-           throw new Error('Please sign in again to continue.');
-        }
-        throw new Error(functionError.message || 'Analysis failed');
-      }
-
-      setResult(data);
-
-      await supabase.from('scan_sessions').insert({
-        user_id: user.id,
-        budget_min: finalBudgetMin,
-        budget_max: finalBudgetMax,
-        context,
-        notes,
-        wines_detected: data.wines_detected || [],
-        recommendations: data.recommendations || [],
-        summary: data.summary || '',
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleNewScan = () => {
-    setImageBase64(null);
-    setResult(null);
-    setError('');
-    setNotes('');
-  };
-
-  const handleSelectWine = (wine: any) => {
-    setSelectedWine(wine);
-  };
+  } = useScannerLogic();
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -387,7 +248,7 @@ export default function Scanner() {
                 reason={wine.reasoning}
                 priceRange={wine.price ? `$${wine.price}` : undefined}
                 className="w-full"
-                onSelect={() => handleSelectWine(wine)}
+                onSelect={() => setSelectedWine(wine)}
               />
             ))}
           </div>
