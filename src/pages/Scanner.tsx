@@ -40,10 +40,10 @@ export default function Scanner() {
   const navigate = useNavigate();
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [context, setContext] = useState<'store' | 'restaurant'>('store');
-  const [storeBudgetMin, setStoreBudgetMin] = useState(15);
-  const [storeBudgetMax, setStoreBudgetMax] = useState(50);
-  const [restaurantBudgetMin, setRestaurantBudgetMin] = useState(38);
-  const [restaurantBudgetMax, setRestaurantBudgetMax] = useState(125);
+  const [storeBudgetMin, setStoreBudgetMin] = useState<number | ''>(15);
+  const [storeBudgetMax, setStoreBudgetMax] = useState<number | ''>(50);
+  const [restaurantBudgetMin, setRestaurantBudgetMin] = useState<number | ''>(38);
+  const [restaurantBudgetMax, setRestaurantBudgetMax] = useState<number | ''>(125);
   const [notes, setNotes] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
@@ -90,6 +90,10 @@ export default function Scanner() {
     setError('');
     setResult(null);
 
+    // Calculate final budget values, defaulting to 0 if empty
+    const finalBudgetMin = budgetMin === '' ? 0 : budgetMin;
+    const finalBudgetMax = budgetMax === '' ? 0 : budgetMax;
+
     try {
       const [{ data: prefs }, { data: memories }] = await Promise.all([
         supabase
@@ -113,37 +117,35 @@ export default function Scanner() {
         adventurousness: prefs?.adventurousness || 'medium',
       };
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-wine`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error: functionError } = await supabase.functions.invoke('analyze-wine', {
+        body: {
           image_base64: imageBase64,
           preferences,
           wine_memories: memories || [],
-          budget_min: budgetMin,
-          budget_max: budgetMax,
+          budget_min: finalBudgetMin,
+          budget_max: finalBudgetMax,
           context,
           notes,
           openai_api_key: apiKey,
-        }),
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Analysis failed');
+      if (functionError) {
+        if (functionError.status === 401) {
+           throw new Error('Please sign in again to continue.');
+        }
+        throw new Error(functionError.message || 'Analysis failed');
       }
 
       setResult(data);
 
       await supabase.from('scan_sessions').insert({
         user_id: user.id,
-        budget_min: budgetMin,
-        budget_max: budgetMax,
+        budget_min: finalBudgetMin,
+        budget_max: finalBudgetMax,
         context,
         notes,
         wines_detected: data.wines_detected || [],
@@ -269,7 +271,7 @@ export default function Scanner() {
                   <input
                     type="number"
                     value={budgetMin}
-                    onChange={(e) => setBudgetMin(Number(e.target.value))}
+                    onChange={(e) => setBudgetMin(e.target.value === '' ? '' : Number(e.target.value))}
                     min={0}
                     className="w-full pl-8 pr-4 py-3 rounded-xl border border-white/10 bg-black/20 text-champagne-100 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
                     placeholder="Min"
@@ -283,7 +285,7 @@ export default function Scanner() {
                   <input
                     type="number"
                     value={budgetMax}
-                    onChange={(e) => setBudgetMax(Number(e.target.value))}
+                    onChange={(e) => setBudgetMax(e.target.value === '' ? '' : Number(e.target.value))}
                     min={0}
                     className="w-full pl-8 pr-4 py-3 rounded-xl border border-white/10 bg-black/20 text-champagne-100 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
                     placeholder="Max"
@@ -320,6 +322,17 @@ export default function Scanner() {
                     className="text-sm text-red-300 font-medium underline mt-1 hover:text-red-100"
                   >
                     Go to Settings
+                  </button>
+                )}
+                {(error.includes('sign in') || error.includes('Unauthorized')) && (
+                  <button
+                    onClick={async () => {
+                        await supabase.auth.signOut();
+                        navigate('/login');
+                    }}
+                    className="text-sm text-red-300 font-medium underline mt-1 hover:text-red-100"
+                  >
+                    Sign Out & Retry
                   </button>
                 )}
               </div>
