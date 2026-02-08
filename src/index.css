@@ -15,6 +15,11 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  
+  .hero-glow {
+    background: radial-gradient(circle, rgba(94, 39, 48, 0.4) 0%, rgba(18, 16, 17, 0) 70%);
+    filter: blur(80px);
+  }
 }
 
 @layer base {

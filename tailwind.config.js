@@ -6,7 +6,7 @@ export default {
       colors: {
         'wine-slate': {
           900: '#292524', // Warm stone-like charcoal
-          950: '#1C1917', // Deep warm charcoal
+          950: '#121011', // Warm Charcoal (Main Background)
         },
         'somm-red': {
           500: '#783543',

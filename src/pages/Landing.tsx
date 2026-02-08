@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Wine, Camera, Star, Utensils, ArrowRight, ScanLine, ChevronRight } from 'lucide-react';
+import { Wine, Camera, Star, Utensils, ArrowRight } from 'lucide-react';
+import Hero from '../components/Hero';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Landing() {
@@ -9,7 +10,7 @@ export default function Landing() {
     <div className="min-h-screen bg-wine-slate-950 text-champagne-100 overflow-x-hidden selection:bg-somm-red-900 selection:text-white">
       {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-somm-red-900/20 rounded-full blur-[120px] opacity-40 mix-blend-screen" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] hero-glow opacity-60 mix-blend-screen" />
           <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-wine-slate-900/40 rounded-full blur-[100px]" />
       </div>
 
@@ -46,7 +47,7 @@ export default function Landing() {
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 bg-champagne-400 text-wine-slate-950 px-6 py-2.5 rounded-full text-sm font-bold hover:bg-white transition-all shadow-[0_0_15px_-3px_rgba(212,196,163,0.3)] hover:shadow-[0_0_20px_-3px_rgba(255,255,255,0.4)]"
+                  className="inline-flex items-center gap-2 bg-champagne-400 text-wine-slate-950 px-6 py-2.5 rounded-full text-sm font-bold hover:bg-white transition-all shadow-[0_0_15px_-3px_rgba(212,196,163,0.3)] hover:shadow-[0_0_20px_-3px_rgba(255,255,255,0.4)] hover:-translate-y-0.5"
                 >
                   Get Started
                 </Link>
@@ -57,45 +58,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-20 px-6 z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full mb-8 backdrop-blur-sm animate-fade-in-up">
-            <ScanLine className="w-3.5 h-3.5 text-champagne-400" />
-            <span className="text-xs font-medium tracking-wide text-champagne-100/90 uppercase">Your Pocket Sommelier</span>
-          </div>
-          
-          <h1 className="font-serif text-5xl sm:text-7xl font-medium text-white tracking-tight leading-[1.1] mb-8 drop-shadow-2xl">
-            Never drink a <br/>
-            <span className="text-champagne-400 relative">
-               bad glass
-               <svg className="absolute w-full h-3 -bottom-1 left-0 text-somm-red-500 opacity-60" viewBox="0 0 100 10" preserveAspectRatio="none">
-                 <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="2" fill="none" />
-               </svg>
-            </span> again.
-          </h1>
-          
-          <p className="text-lg sm:text-xl text-stone-300 max-w-2xl mx-auto mb-12 leading-relaxed font-light">
-            Scan any wine list or shelf. Get instant, personalized recommendations based on your unique palate, budget, and meal.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to={user ? '/scan' : '/register'}
-              className="group inline-flex items-center gap-3 bg-somm-red-900 text-champagne-100 px-8 py-4 rounded-full text-base font-medium hover:bg-somm-red-500 hover:text-white transition-all shadow-[0_4px_20px_-5px_rgba(120,53,67,0.4)] hover:shadow-[0_8px_30px_-5px_rgba(120,53,67,0.6)] border border-somm-red-500/30"
-            >
-              <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              Start Scanning
-            </Link>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center gap-2 text-stone-400 hover:text-white px-6 py-4 rounded-full text-base font-medium transition-colors"
-            >
-              See how it works
-              <ChevronRight className="w-4 h-4 opacity-50" />
-            </a>
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* Features Grid */}
       <section id="features" className="py-24 px-6 relative">
@@ -104,26 +67,26 @@ export default function Landing() {
             {[
               {
                 icon: Camera,
-                title: 'Scan any list',
-                desc: 'Instantly identifies wines from any menu or shelf photo using advanced OCR.',
+                title: 'Instant Recognition',
+                desc: 'GPT-4 Vision identifies wines from any blurry menu photo.',
               },
               {
                 icon: Star,
-                title: 'Know your palate',
-                desc: 'Our AI learns your tastes over time to recommend bottles you\'ll actually love.',
+                title: 'Taste Intelligence',
+                desc: 'Learns your preferences with every rating.',
               },
               {
                 icon: Utensils,
-                title: 'Perfect pairings',
-                desc: "Tell us what you're eating. We'll find the harmony between plate and glass.",
+                title: 'Perfect Pairings',
+                desc: "Matches the wine to your Ribeye or Takeout Thai.",
               },
             ].map((feature) => (
-              <div key={feature.title} className="group p-8 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 hover:border-champagne-400/20 hover:bg-white/[0.06] transition-all duration-500 hover:shadow-2xl hover:shadow-black/20">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-white/10">
-                  <feature.icon className="w-5 h-5 text-champagne-400" />
+              <div key={feature.title} className="group p-8 rounded-3xl bg-white/5 border border-white/5 hover:border-champagne-400/20 hover:bg-white/10 transition-all duration-500 hover:shadow-2xl hover:shadow-black/20">
+                <div className="w-14 h-14 rounded-2xl bg-somm-red-900 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner shadow-black/20">
+                  <feature.icon className="w-6 h-6 text-champagne-400" />
                 </div>
-                <h3 className="font-serif text-xl text-white mb-3">{feature.title}</h3>
-                <p className="text-stone-400 leading-relaxed text-sm font-light">{feature.desc}</p>
+                <h3 className="font-serif text-2xl text-white mb-3">{feature.title}</h3>
+                <p className="text-stone-400 leading-relaxed text-base font-light">{feature.desc}</p>
               </div>
             ))}
           </div>
