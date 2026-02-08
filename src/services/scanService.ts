@@ -61,18 +61,26 @@ export const scanService = {
    * Invoke the analyze-wine edge function
    * Note: This is a direct wrapper around functions.invoke
    */
-  async analyzeWine(payload: ScanRequest, token: string): Promise<ScanResult> {
+  async analyzeWine(payload: ScanRequest): Promise<ScanResult> {
     
+    // Check current session
+    const { data: sessionData } = await supabase.auth.getSession();
+    
+    // We rely on the supabase client to handle auth headers automatically
+    // But verify we have a session first
+    if (!sessionData.session) {
+        throw new Error('No active session found. Please sign in again.');
+    }
+
     const { data, error } = await supabase.functions.invoke('analyze-wine', {
       body: payload,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
 
     if (error) {
+       console.error('Supabase Function Invoke Error:', error);
+       
        // Propagate specific status codes if needed
-       if (error.status === 401) throw new Error('Unauthorized');
+       if (error.status === 401) throw new Error('Unauthorized - Please ensure you are logged in.');
        throw new Error(error.message || 'Analysis failed');
     }
 

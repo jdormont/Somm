@@ -48,7 +48,7 @@ export function useDeleteScan() {
 
 export function useAnalyzeWine() {
   return useMutation({
-    mutationFn: ({ payload, token }: { payload: ScanRequest; token: string }) => 
-      scanService.analyzeWine(payload, token),
+    mutationFn: ({ payload }: { payload: ScanRequest }) => 
+      scanService.analyzeWine(payload),
   });
 }

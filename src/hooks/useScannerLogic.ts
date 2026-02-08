@@ -110,7 +110,6 @@ export function useScannerLogic() {
           notes,
           openai_api_key: apiKey,
         },
-        token: session.access_token,
       });
 
       setResult(scanResult);
