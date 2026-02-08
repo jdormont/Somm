@@ -1,6 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Wine, LayoutDashboard, ScanLine, Heart, Settings, LogOut, BookOpen, Shield, GraduationCap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import OnboardingModal from './OnboardingModal';
+import { supabase } from '../lib/supabase';
 
 const baseNavItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -12,8 +15,30 @@ const baseNavItems = [
 ];
 
 export default function Layout() {
-  const { signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, [user]);
+
+  const checkOnboardingStatus = async () => {
+    if (!user) return;
+    
+    // Check if user has completed onboarding
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('onboarding_completed, approved')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Show modal if approved but NOT completed onboarding
+    if (data?.approved && !data.onboarding_completed) {
+      setShowOnboarding(true);
+    }
+  };
+
 
   const navItems = isAdmin
     ? [...baseNavItems, { to: '/admin', icon: Shield, label: 'Admin' }]
@@ -91,6 +116,10 @@ export default function Layout() {
       <main className="flex-1 md:ml-64 pb-24 md:pb-0 bg-wine-slate-950 min-h-screen">
         <Outlet />
       </main>
+
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
     </div>
   );
 }
