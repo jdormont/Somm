@@ -26,6 +26,11 @@ export default function Layout() {
   const checkOnboardingStatus = async () => {
     if (!user) return;
     
+    // Check local dismissal first
+    if (localStorage.getItem('somm_onboarding_dismissed') === 'true') {
+        return;
+    }
+
     // Check if user has completed onboarding
     const { data } = await supabase
       .from('user_profiles')

@@ -329,6 +329,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
       <div className="w-full max-w-lg bg-wine-slate-950 border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200 relative">
         <button
           onClick={() => {
+            localStorage.setItem('somm_onboarding_dismissed', 'true');
             onComplete();
             navigate('/scan');
           }}

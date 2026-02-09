@@ -144,6 +144,7 @@ Deno.serve(async (req: Request) => {
     // Determine which API key to use
     let apiKey = body.openai_api_key;
     const authHeader = req.headers.get('Authorization');
+    let useSharedKey = false;
 
     if (authHeader) {
       const supabaseClient = createClient(
@@ -153,24 +154,33 @@ Deno.serve(async (req: Request) => {
       );
 
       const { data: user } = await supabaseClient.auth.getUser();
+
       if (user?.user) {
-        const { data: profile } = await supabaseClient
+        // Use Service Role to bypass RLS for profile lookup
+        const supabaseAdmin = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        const { data: profileData, error: profileError } = await supabaseAdmin
           .from('user_profiles')
           .select('use_shared_key')
           .eq('user_id', user.user.id)
           .single();
 
-        if (profile?.use_shared_key) {
-          apiKey = Deno.env.get('OPENAI_API_KEY');
+        if (profileData?.use_shared_key) {
+            useSharedKey = true;
+            apiKey = Deno.env.get('OPENAI_API_KEY');
         }
       }
     }
 
     if (!apiKey) {
+      console.error('Error: No OpenAI API key found.');
+      
       return new Response(
         JSON.stringify({
-          error:
-            "No OpenAI API key configured. Please add your API key in Settings.",
+          error: "No OpenAI API key configured. Please add your API key in Settings.",
         }),
         {
           status: 400,
@@ -180,6 +190,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!image_base64) {
+      console.error('Error: No image_base64 provided in body.');
       return new Response(
         JSON.stringify({ error: "No image provided." }),
         {
@@ -194,13 +205,32 @@ Deno.serve(async (req: Request) => {
       : `data:image/jpeg;base64,${image_base64}`;
 
     // -------------------------------------------------------------------------
-    // STEP 1: IDENTIFY WINES (OCR)
+    // STEP 1: IDENTIFY & PRE-FILTER WINES (OCR + INTERNAL KNOWLEDGE)
     // -------------------------------------------------------------------------
+    // We ask the LLM to extract wines AND score them on relevance/quality immediately.
+    // This allows us to process long lists by prioritizing what we research.
+
     const identificationPrompt = `
-    Identify all wines in this image. Return ONLY a JSON object with this structure:
+    Analyze this image and extract ALL wines listed. 
+    For each wine, estimate two scores (0-10) based on your internal knowledge and the User Constraints provided below.
+
+    [USER CONSTRAINTS]
+    ${buildConstraints(budget_min, budget_max, context || "store", notes, food_context)}
+
+    [USER PROFILE]
+    ${buildUserProfile(preferences, wine_memories || [])}
+
+    Return a JSON object with this structure:
     {
       "wines": [
-        { "name": "Producer + Name", "vintage": "Year" or null }
+        { 
+          "name": "Producer + Name", 
+          "vintage": "Year" or null,
+          "price_seen": number or null (if visible in image),
+          "profile_match_score": 0-10 (How well it matches constraints, food, and profile),
+          "quality_score": 0-10 (Your internal knowledge of this wine's reputation/quality),
+          "reasoning": "Brief reason for scores" 
+        }
       ]
     }
     Ignore non-wine text. If no wines are found, return { "wines": [] }.
@@ -229,21 +259,32 @@ Deno.serve(async (req: Request) => {
 
     if (!ocrResponse.ok) throw new Error("Failed to identify wines");
     const ocrData = await ocrResponse.json();
-    const winesFound = JSON.parse(ocrData.choices[0].message.content).wines || [];
+    const allWinesFound = JSON.parse(ocrData.choices[0].message.content).wines || [];
 
     // -------------------------------------------------------------------------
-    // STEP 2: RESEARCH WINES (TAVILY AGENT)
+    // STEP 2: PRIORITIZE & RESEARCH (TAVILY)
     // -------------------------------------------------------------------------
+    // Sort wines by a weighted score: Profile Match (60%) + Quality (40%)
+    // But filters out wines that strictly violate budget if specific pricing is matched.
+
+    const candidates = allWinesFound.map((wine: any) => {
+       let score = (wine.profile_match_score * 1.5) + (wine.quality_score * 1.0);
+       
+       // Bonus for explicit food match mentioned in reasoning
+       if (wine.reasoning?.toLowerCase().includes("food")) score += 2;
+       
+       return { ...wine, final_score: score };
+    }).sort((a: any, b: any) => b.final_score - a.final_score);
+
+    // Select Top 8 for research to save time/tokens but get good variety
+    const winesToResearch = candidates.slice(0, 8);
+
     const tavilyKey = Deno.env.get("TAVILY_API_KEY");
     let researchContext = "";
     
-    // Only search if we found wines and have a key
-    if (winesFound.length > 0 && tavilyKey) {
-       // Search for top 5 wines max to save time/tokens
-       const winesToSearch = winesFound.slice(0, 5); 
-       
-       const searchPromises = winesToSearch.map(async (wine: any) => {
-          const query = `${wine.name} ${wine.vintage || ""} wine tech sheet tasting notes`;
+    if (winesToResearch.length > 0 && tavilyKey) {
+       const searchPromises = winesToResearch.map(async (wine: any) => {
+          const query = `${wine.name} ${wine.vintage || ""} wine tech sheet tasting notes reviews`;
           try {
              const resp = await fetch("https://api.tavily.com/search", {
                 method: "POST",
@@ -257,7 +298,7 @@ Deno.serve(async (req: Request) => {
              });
              const data = await resp.json();
              const content = data.results?.[0]?.content || "No info found.";
-             return `WINE: ${wine.name} (${wine.vintage || "NV"})\nFACTS: ${content}\n\n`;
+             return `WINE: ${wine.name} (${wine.vintage || "NV"})\nINTERNAL_QUALITY: ${wine.quality_score}/10\nFACTS: ${content}\n\n`;
           } catch (e) {
              return `WINE: ${wine.name}\nFACTS: Search failed.\n\n`;
           }
@@ -273,14 +314,14 @@ Deno.serve(async (req: Request) => {
     const userProfile = buildUserProfile(preferences, wine_memories || []);
     const constraints = buildConstraints(budget_min, budget_max, context || "store", notes, food_context);
     
-    // Original system prompt + new instructions
+    // System prompt
     const systemPrompt = `
 ### ROLE
 You are "Somm," an expert AI Sommelier.
 
 ### OBJECTIVE
 Analyze the wine list and user profile to provide personalized recommendations.
-**CRITICAL:** You have been provided with VERIFIED EXTERNAL DATA about these wines.
+**CRITICAL:** You have been provided with VERIFIED EXTERNAL DATA about the top candidate wines.
 Use this data to determine the body, tannins, acidity, and flavor profiles.
 Do NOT guess. If the search data contradicts your internal knowledge, prefer the search data.
 
@@ -289,7 +330,8 @@ Do NOT guess. If the search data contradicts your internal knowledge, prefer the
 2. **CONTEXT IS KING**: If a "FOOD PAIRING" is specified, prioritize wines that pair naturally with that food, even if they deviate slightly from general style preferences.
    - *Example: User loves big Cabs but is eating Oysters -> Recommend a crisp White or Champagne, explaining the pairing.*
 3. **HISTORY & TASTE**: If no specific food context, align closely with "Loves", "History", and Flavor Profile preferences.
-4. **ADVENTUROUSNESS**: 
+4. **QUALITY & REPUTATION**: Prefer wines with higher quality/critic scores if the profile match is similar.
+5. **ADVENTUROUSNESS**: 
    - Low: Stick to safe matches (known regions/grapes).
    - High: Suggest surprising but suitable choices (e.g., Orange wine for pork).
 
@@ -300,6 +342,7 @@ ${userProfile}
 ### 2. OUTPUT FORMAT (JSON ONLY)
 {
   "wines_detected": [
+    // List ALL wines found in the image, not just the recommended ones
     { "name": "string", "producer": "string", "vintage": "string", "type": "red|white|...", "region": "string", "price": numberOrNull }
   ],
   "recommendations": [

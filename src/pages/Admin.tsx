@@ -174,75 +174,79 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0">
-                  {!isSelf && (
-                    <>
-                      {profile.role !== 'admin' ? (
-                        <button
-                          onClick={() => updateRole(profile.id, 'admin')}
-                          disabled={isUpdating}
-                          className="text-xs px-4 py-2 rounded-lg border border-white/10 text-stone-400 hover:bg-white/5 hover:text-stone-200 transition-colors disabled:opacity-50 font-medium"
-                          title="Make admin"
-                        >
-                          <Shield className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => updateRole(profile.id, 'user')}
-                          disabled={isUpdating}
-                          className="text-xs px-4 py-2 rounded-lg border border-somm-red-500/20 text-somm-red-400 bg-somm-red-900/20 hover:bg-somm-red-900/40 transition-colors disabled:opacity-50 font-medium"
-                          title="Remove admin"
-                        >
-                          <Shield className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0">
+                    {/* Shared Key Toggle - Available for Self */}
+                    {profile.approved && (
+                      <button
+                        onClick={() => updateSharedKey(profile.id, !profile.use_shared_key)}
+                        disabled={isUpdating}
+                        className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border transition-all disabled:opacity-50 font-medium ${
+                          profile.use_shared_key
+                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]'
+                            : 'bg-white/5 border-white/10 text-stone-500 hover:bg-white/10 hover:text-stone-300'
+                        }`}
+                        title={profile.use_shared_key ? 'Using Global App Key' : 'Must provide own API Key'}
+                      >
+                        <Key className={`w-3.5 h-3.5 ${profile.use_shared_key ? 'fill-amber-500/20' : ''}`} />
+                        {profile.use_shared_key ? 'Global Key' : 'Own Key'}
+                      </button>
+                    )}
 
-                      {profile.approved ? (
-                        <button
-                          onClick={() => updateApproval(profile.id, false)}
-                          disabled={isUpdating}
-                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 font-medium"
-                        >
-                          {isUpdating ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <UserX className="w-3.5 h-3.5" />
-                          )}
-                          Revoke
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => updateApproval(profile.id, true)}
-                          disabled={isUpdating}
-                          className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-emerald-600/90 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 font-medium shadow-sm"
-                        >
-                          {isUpdating ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <UserCheck className="w-3.5 h-3.5" />
-                          )}
-                          Approve
-                        </button>
-                      )}
-                      
-                      {profile.approved && (
-                        <button
-                          onClick={() => updateSharedKey(profile.id, !profile.use_shared_key)}
-                          disabled={isUpdating}
-                          className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-colors disabled:opacity-50 font-medium ${
-                            profile.use_shared_key
-                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
-                              : 'bg-white/5 border-white/10 text-stone-400 hover:bg-white/10 hover:text-stone-300'
-                          }`}
-                          title={profile.use_shared_key ? 'Using shared API key' : 'Using own API key'}
-                        >
-                          <Key className="w-3.5 h-3.5" />
-                          {profile.use_shared_key ? 'Shared Key' : 'Own Key'}
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
+                    {/* Admin Actions - Not Available for Self */}
+                    {!isSelf && (
+                      <>
+                        <div className="w-px h-6 bg-white/10 mx-1 hidden sm:block" />
+                        
+                        {profile.role !== 'admin' ? (
+                          <button
+                            onClick={() => updateRole(profile.id, 'admin')}
+                            disabled={isUpdating}
+                            className="text-xs px-3 py-2 rounded-lg border border-white/10 text-stone-400 hover:bg-white/5 hover:text-stone-200 transition-colors disabled:opacity-50 font-medium"
+                            title="Make admin"
+                          >
+                            <Shield className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateRole(profile.id, 'user')}
+                            disabled={isUpdating}
+                            className="text-xs px-3 py-2 rounded-lg border border-somm-red-500/20 text-somm-red-400 bg-somm-red-900/20 hover:bg-somm-red-900/40 transition-colors disabled:opacity-50 font-medium"
+                            title="Remove admin"
+                          >
+                            <Shield className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {profile.approved ? (
+                          <button
+                            onClick={() => updateApproval(profile.id, false)}
+                            disabled={isUpdating}
+                            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 font-medium"
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <UserX className="w-3.5 h-3.5" />
+                            )}
+                            <span className="hidden sm:inline">Revoke</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateApproval(profile.id, true)}
+                            disabled={isUpdating}
+                            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-emerald-600/90 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 font-medium shadow-sm"
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <UserCheck className="w-3.5 h-3.5" />
+                            )}
+                            Approve
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
               </div>
             );
           })}

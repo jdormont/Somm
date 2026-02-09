@@ -74,6 +74,9 @@ export const scanService = {
 
     const { data, error } = await supabase.functions.invoke('analyze-wine', {
       body: payload,
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`
+      }
     });
 
     if (error) {
