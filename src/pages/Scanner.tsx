@@ -1,6 +1,7 @@
 import { ScanLine, Loader2, Sparkles, DollarSign, MessageSquare, AlertCircle, Store, UtensilsCrossed, Wine } from 'lucide-react';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from '../components/ImageUpload';
 import RecommendationCard from '../components/RecommendationCard';
 import AddWineForm from '../components/AddWineForm';
@@ -9,7 +10,9 @@ import { useScannerLogic } from '../hooks/useScannerLogic';
 import type { WineRecommendation } from '../types';
 
 export default function Scanner() {
+  const { isAdmin } = useAuth();
   const [selectedWineDetails, setSelectedWineDetails] = useState<WineRecommendation | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const {
     state: {
@@ -283,6 +286,101 @@ export default function Scanner() {
               />
             ))}
           </div>
+
+          {/* Admin Debug Section */}
+          {isAdmin && result.debug && result.debug.allWinesFound && (
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <button 
+                onClick={() => setShowDebug(!showDebug)}
+                className="flex items-center gap-2 text-xs font-mono text-stone-500 hover:text-stone-300 transition-colors mb-4"
+              >
+                <div className={`w-2 h-2 rounded-full ${showDebug ? 'bg-somm-red-500' : 'bg-stone-600'}`} />
+                {showDebug ? 'Hide' : 'Show'} Admin Debug Info
+              </button>
+              
+              {showDebug && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Researched Wines Table */}
+                   <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                    <div className="px-4 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                      <h3 className="text-xs font-medium text-champagne-100 uppercase tracking-wider">
+                        Deep Researched Candidates ({result.debug.researchedWines.length})
+                      </h3>
+                      <span className="text-[10px] text-stone-500 font-mono">Top 8 selected</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-stone-400">
+                            <thead className="bg-white/5 text-stone-500 font-medium">
+                                <tr>
+                                    <th className="px-4 py-2">Name</th>
+                                    <th className="px-4 py-2 text-right">Profile</th>
+                                    <th className="px-4 py-2 text-right">Quality</th>
+                                    <th className="px-4 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {result.debug.researchedWines.map((wine, i) => (
+                                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                                        <td className="px-4 py-2 font-medium text-stone-300">{wine.name}</td>
+                                        <td className="px-4 py-2 text-right">{wine.profile_match_score}</td>
+                                        <td className="px-4 py-2 text-right">{wine.quality_score}</td>
+                                        <td className="px-4 py-2 text-right text-champagne-400 font-bold">
+                                            {((wine.profile_match_score * 1.5) + wine.quality_score).toFixed(1)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                  </div>
+
+                  {/* All Wines Table */}
+                  <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                    <div className="px-4 py-3 bg-white/5 border-b border-white/5">
+                      <h3 className="text-xs font-medium text-champagne-100 uppercase tracking-wider">
+                        All Identified Wines ({result.debug.allWinesFound.length})
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-stone-400">
+                            <thead className="bg-white/5 text-stone-500 font-medium">
+                                <tr>
+                                    <th className="px-4 py-2">Name</th>
+                                    <th className="px-4 py-2 text-right">Profile</th>
+                                    <th className="px-4 py-2 text-right">Quality</th>
+                                    <th className="px-4 py-2 text-right">Total</th>
+                                    <th className="px-4 py-2">Review Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {result.debug.allWinesFound.map((wine, i) => {
+                                    const score = ((wine.profile_match_score * 1.5) + wine.quality_score).toFixed(1);
+                                    const isResearched = result.debug?.researchedWines.some(r => r.name === wine.name);
+                                    
+                                    return (
+                                        <tr key={i} className={`hover:bg-white/5 transition-colors ${isResearched ? 'bg-somm-red-900/10' : ''}`}>
+                                            <td className="px-4 py-2 text-stone-300">{wine.name}</td>
+                                            <td className="px-4 py-2 text-right">{wine.profile_match_score}</td>
+                                            <td className="px-4 py-2 text-right">{wine.quality_score}</td>
+                                            <td className="px-4 py-2 text-right font-medium">{score}</td>
+                                             <td className="px-4 py-2">
+                                                {isResearched ? (
+                                                    <span className="text-somm-red-400 font-medium text-[10px] uppercase">Researched</span>
+                                                ) : (
+                                                    <span className="text-stone-600 text-[10px] uppercase">Skipped</span>
+                                                )}
+                                             </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             onClick={handleNewScan}

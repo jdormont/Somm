@@ -22,10 +22,11 @@ function formatDate(dateStr: string) {
 
 export default function ScanDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [selectedWine, setSelectedWine] = useState<WineInput | null>(null);
   const [selectedWineDetails, setSelectedWineDetails] = useState<WineRecommendation | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const { data: session, isLoading, error } = useScan(id, user?.id);
   const deleteScan = useDeleteScan();
@@ -219,6 +220,101 @@ export default function ScanDetail() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Admin Debug Section */}
+      {isAdmin && session.debug_info && session.debug_info.allWinesFound && (
+        <div className="mt-12 pt-8 border-t border-white/5">
+          <button 
+            onClick={() => setShowDebug(!showDebug)}
+            className="flex items-center gap-2 text-xs font-mono text-stone-500 hover:text-stone-300 transition-colors mb-4"
+          >
+            <div className={`w-2 h-2 rounded-full ${showDebug ? 'bg-somm-red-500' : 'bg-stone-600'}`} />
+            {showDebug ? 'Hide' : 'Show'} Admin Debug Info
+          </button>
+          
+          {showDebug && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* Researched Wines Table */}
+               <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                <div className="px-4 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                  <h3 className="text-xs font-medium text-champagne-100 uppercase tracking-wider">
+                    Deep Researched Candidates ({session.debug_info.researchedWines.length})
+                  </h3>
+                  <span className="text-[10px] text-stone-500 font-mono">Top 8 selected</span>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-stone-400">
+                        <thead className="bg-white/5 text-stone-500 font-medium">
+                            <tr>
+                                <th className="px-4 py-2">Name</th>
+                                <th className="px-4 py-2 text-right">Profile</th>
+                                <th className="px-4 py-2 text-right">Quality</th>
+                                <th className="px-4 py-2 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {session.debug_info.researchedWines.map((wine, i) => (
+                                <tr key={i} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-4 py-2 font-medium text-stone-300">{wine.name}</td>
+                                    <td className="px-4 py-2 text-right">{wine.profile_match_score}</td>
+                                    <td className="px-4 py-2 text-right">{wine.quality_score}</td>
+                                    <td className="px-4 py-2 text-right text-champagne-400 font-bold">
+                                        {((wine.profile_match_score * 1.5) + wine.quality_score).toFixed(1)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+
+              {/* All Wines Table */}
+              <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                <div className="px-4 py-3 bg-white/5 border-b border-white/5">
+                  <h3 className="text-xs font-medium text-champagne-100 uppercase tracking-wider">
+                    All Identified Wines ({session.debug_info.allWinesFound.length})
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-stone-400">
+                        <thead className="bg-white/5 text-stone-500 font-medium">
+                            <tr>
+                                <th className="px-4 py-2">Name</th>
+                                <th className="px-4 py-2 text-right">Profile</th>
+                                <th className="px-4 py-2 text-right">Quality</th>
+                                <th className="px-4 py-2 text-right">Total</th>
+                                <th className="px-4 py-2">Review Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {session.debug_info.allWinesFound.map((wine, i) => {
+                                const score = ((wine.profile_match_score * 1.5) + wine.quality_score).toFixed(1);
+                                const isResearched = session.debug_info?.researchedWines.some(r => r.name === wine.name);
+                                
+                                return (
+                                    <tr key={i} className={`hover:bg-white/5 transition-colors ${isResearched ? 'bg-somm-red-900/10' : ''}`}>
+                                        <td className="px-4 py-2 text-stone-300">{wine.name}</td>
+                                        <td className="px-4 py-2 text-right">{wine.profile_match_score}</td>
+                                        <td className="px-4 py-2 text-right">{wine.quality_score}</td>
+                                        <td className="px-4 py-2 text-right font-medium">{score}</td>
+                                         <td className="px-4 py-2">
+                                            {isResearched ? (
+                                                <span className="text-somm-red-400 font-medium text-[10px] uppercase">Researched</span>
+                                            ) : (
+                                                <span className="text-stone-600 text-[10px] uppercase">Skipped</span>
+                                            )}
+                                         </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

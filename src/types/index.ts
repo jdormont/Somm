@@ -43,13 +43,31 @@ export interface ScanSession {
   wines_detected: WineDetected[];
   recommendations: WineRecommendation[];
   summary: string;
+  debug_info?: {
+    allWinesFound: WineDebugInfo[];
+    researchedWines: WineDebugInfo[];
+  };
   created_at: string;
+}
+
+export interface WineDebugInfo {
+  name: string;
+  vintage?: string | null;
+  price_seen?: number | null;
+  profile_match_score: number;
+  quality_score: number;
+  reasoning?: string;
+  final_score?: number;
 }
 
 export interface ScanResult {
   wines_detected: WineDetected[];
   recommendations: WineRecommendation[];
   summary: string;
+  debug?: {
+    allWinesFound: WineDebugInfo[];
+    researchedWines: WineDebugInfo[];
+  };
 }
 
 export interface ScanRequest {

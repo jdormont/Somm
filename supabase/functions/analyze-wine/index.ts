@@ -210,30 +210,25 @@ Deno.serve(async (req: Request) => {
     // We ask the LLM to extract wines AND score them on relevance/quality immediately.
     // This allows us to process long lists by prioritizing what we research.
 
-    const identificationPrompt = `
-    Analyze this image and extract ALL wines listed. 
-    For each wine, estimate two scores (0-10) based on your internal knowledge and the User Constraints provided below.
+    // -------------------------------------------------------------------------
+    // STEP 1a: VISION EXTRACTION (OCR ONLY)
+    // -------------------------------------------------------------------------
+    // Goal: Get the raw list of wines. No reasoning, just data entry. 
+    // This maximizes the chance of getting ALL 60+ wines.
 
-    [USER CONSTRAINTS]
-    ${buildConstraints(budget_min, budget_max, context || "store", notes, food_context)}
-
-    [USER PROFILE]
-    ${buildUserProfile(preferences, wine_memories || [])}
-
-    Return a JSON object with this structure:
+    const extractionPrompt = `
+    Extract EVERY SINGLE WINE from the image. 
+    Return a JSON object with this minified structure:
     {
       "wines": [
         { 
-          "name": "Producer + Name", 
-          "vintage": "Year" or null,
-          "price_seen": number or null (if visible in image),
-          "profile_match_score": 0-10 (How well it matches constraints, food, and profile),
-          "quality_score": 0-10 (Your internal knowledge of this wine's reputation/quality),
-          "reasoning": "Brief reason for scores" 
+          "n": "Producer + Name", 
+          "y": "Year" or null,
+          "p": number or null (price)
         }
       ]
     }
-    Ignore non-wine text. If no wines are found, return { "wines": [] }.
+    Ignore non-wine text. Do not score yet. Just list them.
     `;
 
     const ocrResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -245,10 +240,11 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [
+          { role: "system", content: "You are a precise data extractor. List every item." },
           {
             role: "user",
             content: [
-              { type: "text", text: identificationPrompt },
+              { type: "text", text: extractionPrompt },
               { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
             ],
           },
@@ -257,23 +253,78 @@ Deno.serve(async (req: Request) => {
       }),
     });
 
-    if (!ocrResponse.ok) throw new Error("Failed to identify wines");
+    if (!ocrResponse.ok) throw new Error("Failed to extract wines");
     const ocrData = await ocrResponse.json();
-    const allWinesFound = JSON.parse(ocrData.choices[0].message.content).wines || [];
+    const rawWines = JSON.parse(ocrData.choices[0].message.content).wines || [];
+    
+    // -------------------------------------------------------------------------
+    // STEP 1b: SCORING (TEXT ANALYSIS)
+    // -------------------------------------------------------------------------
+    // Now we score the list. Text processing is much cheaper/reliable for batched logic.
+
+    const scoringPrompt = `
+    Here is a list of wines found on a menu.
+    User Profile: ${buildUserProfile(preferences, wine_memories || []).replace(/\n/g, " ")}
+    Constraints: ${buildConstraints(budget_min, budget_max, context || "store", notes, food_context).replace(/\n/g, " ")}
+
+    For EACH wine in the list below, assign two scores (0-10):
+    - s1: Profile Match (How well it fits user + constraints)
+    - s2: Quality Score (Internal reputation)
+
+    Return JSON:
+    {
+      "scores": [
+        { "n": "Exact Name from list", "s1": number, "s2": number }
+      ]
+    }
+    
+    WINE LIST:
+    ${JSON.stringify(rawWines)}
+    `;
+
+    const scoringResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+            { role: "system", content: "You are an expert sommelier. Score these wines accurately." },
+            { role: "user", content: scoringPrompt }
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    
+    let scoredWinesMap: Record<string, {s1: number, s2: number}> = {};
+    if (scoringResponse.ok) {
+        const scoreData = await scoringResponse.json();
+        const scoresList = JSON.parse(scoreData.choices[0].message.content).scores || [];
+        scoresList.forEach((s: any) => {
+            scoredWinesMap[s.n] = { s1: s.s1, s2: s.s2 };
+        });
+    }
 
     // -------------------------------------------------------------------------
     // STEP 2: PRIORITIZE & RESEARCH (TAVILY)
     // -------------------------------------------------------------------------
-    // Sort wines by a weighted score: Profile Match (60%) + Quality (40%)
-    // But filters out wines that strictly violate budget if specific pricing is matched.
 
-    const candidates = allWinesFound.map((wine: any) => {
-       let score = (wine.profile_match_score * 1.5) + (wine.quality_score * 1.0);
+    const candidates = rawWines.map((wine: any) => {
+       const scores = scoredWinesMap[wine.n] || { s1: 0, s2: 0 }; // Fallback if name mismatch
        
-       // Bonus for explicit food match mentioned in reasoning
-       if (wine.reasoning?.toLowerCase().includes("food")) score += 2;
+       // Map back to full keys for frontend/DB
+       const mapped = {
+           name: wine.n,
+           vintage: wine.y,
+           price_seen: wine.p,
+           profile_match_score: scores.s1,
+           quality_score: scores.s2
+       };
        
-       return { ...wine, final_score: score };
+       let final_score = (mapped.profile_match_score * 1.5) + (mapped.quality_score * 1.0);
+       return { ...mapped, final_score };
     }).sort((a: any, b: any) => b.final_score - a.final_score);
 
     // Select Top 8 for research to save time/tokens but get good variety
@@ -317,16 +368,24 @@ Deno.serve(async (req: Request) => {
     // System prompt
     const systemPrompt = `
 ### ROLE
-You are "Somm," an expert AI Sommelier.
+You are "Somm," a warm, engaging, and highly knowledgeable AI Sommelier. 
+You are NOT a robot data processor. You are a passionate expert who loves connecting people with great wine.
 
 ### OBJECTIVE
-Analyze the wine list and user profile to provide personalized recommendations.
+Analyze the wine list and user profile to provide personalized recommendations that feel hand-picked.
+Strictly adhere to budget constraints.
 **CRITICAL:** You have been provided with VERIFIED EXTERNAL DATA about the top candidate wines.
 Use this data to determine the body, tannins, acidity, and flavor profiles.
 Do NOT guess. If the search data contradicts your internal knowledge, prefer the search data.
 
+### TONE & STYLE (CRITICAL)
+- **Warm & Conversational:** Speak like a friend who happens to be a Master Sommelier.
+- **No Robot Speak:** NEVER use phrases like "aligns with your preference for", "matches your criteria", "fits the user's profile", or "based on your history".
+- **Natural Reasoning:** Instead, say things like: "I picked this because...", "Since you enjoyed [X], you'll love this...", "This is a fantastic example of...", "I think you'll really dig the notes of..."
+- **Sensory & Evocative:** Focus on what the wine tastes like and *why* that matters to this user.
+
 ### RECOMMENDATION LOGIC & PRIORITIES
-1. **HARD FILTERS**: Exclude wines on the "Avoidance" list or significantly outside the adjusted budget.
+1. **HARD BUDGET LIMIT**: Do NOT recommend wines that exceed the user's budget max (including variance) unless explicitly requested in notes. If a wine is too expensive, do not list it.
 2. **CONTEXT IS KING**: If a "FOOD PAIRING" is specified, prioritize wines that pair naturally with that food, even if they deviate slightly from general style preferences.
    - *Example: User loves big Cabs but is eating Oysters -> Recommend a crisp White or Champagne, explaining the pairing.*
 3. **HISTORY & TASTE**: If no specific food context, align closely with "Loves", "History", and Flavor Profile preferences.
@@ -362,7 +421,7 @@ ${userProfile}
         "acidity": "Low|Medium|High",
         "alcohol": "Low|Medium|High"
       },
-      "reasoning": "string explaining why matches/differs",
+      "reasoning": "Warm, conversational explanation of why this wine is perfect for them. Connect flavor notes to their taste. Avoid 'matches your preference'. Max 2 sentences.",
       "tasting_notes": "string",
       "food_pairings": ["string"],
       "critic_info": "string or null"
@@ -403,7 +462,7 @@ ${userProfile}
             },
           ],
           response_format: { type: "json_object" },
-          temperature: 0.2, // Lower temperature for more factual adherence
+          temperature: 0.4, // Slightly higher for more natural, less robotic phrasing
         }),
     });
 
@@ -415,8 +474,17 @@ ${userProfile}
     const finalData = await finalResponse.json();
     const content = finalData.choices[0].message.content;
     const parsed = JSON.parse(content);
+    
+    // Merge debug info into response
+    const responseData = {
+        ...parsed,
+        debug: {
+            allWinesFound: candidates,
+            researchedWines: winesToResearch
+        }
+    };
 
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

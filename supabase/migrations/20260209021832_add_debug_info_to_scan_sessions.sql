@@ -1,0 +1,1 @@
+ALTER TABLE scan_sessions ADD COLUMN IF NOT EXISTS debug_info jsonb;

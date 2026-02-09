@@ -126,6 +126,7 @@ export function useScannerLogic() {
         wines_detected: scanResult.wines_detected || [],
         recommendations: scanResult.recommendations || [],
         summary: scanResult.summary || '',
+        debug_info: scanResult.debug,
       });
 
     } catch (err) {
