@@ -1,21 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
-import { Heart, Loader2, Check, X, Store, UtensilsCrossed, BookOpen } from 'lucide-react';
+import { Heart, Loader2, Check, X, Store, UtensilsCrossed, BookOpen, ChevronDown, ChevronUp, Minus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import TasteSlider from '../components/TasteSlider';
 
-const WINE_TYPES = ['Red', 'White', 'Rosé', 'Sparkling', 'Dessert', 'Fortified', 'Orange'];
+const WINE_VARIETALS: Record<string, string[]> = {
+  Red: ['Cabernet Sauvignon', 'Merlot', 'Pinot Noir', 'Syrah/Shiraz', 'Malbec', 'Zinfandel', 'Sangiovese', 'Nebbiolo', 'Grenache', 'Tempranillo'],
+  White: ['Chardonnay', 'Sauvignon Blanc', 'Pinot Grigio', 'Riesling', 'Chenin Blanc', 'Moscato', 'Gewürztraminer', 'Viognier', 'Grüner Veltliner'],
+  Rosé: ['Provencal Rosé', 'White Zinfandel', 'Syrah Rosé', 'Grenache Rosé', 'Sangiovese Rosé'],
+  Sparkling: ['Champagne', 'Prosecco', 'Cava', 'Lambrusco', 'Franciacorta', 'Crémant'],
+  Dessert: ['Port', 'Sherry', 'Ice Wine', 'Sauternes', 'Moscato d\'Asti'],
+  Fortified: ['Port', 'Sherry', 'Madeira', 'Marsala', 'Vermouth'],
+  Orange: ['Skin-Contact White', 'Amber Wine']
+};
+
 const REGIONS = [
   'France', 'Italy', 'Spain', 'Portugal', 'Germany', 'Austria',
   'California', 'Oregon', 'Washington', 'New York',
   'Argentina', 'Chile', 'Australia', 'New Zealand', 'South Africa',
   'Greece', 'Georgia', 'Lebanon', 'Japan',
 ];
-const FLAVOR_PROFILES = [
-  'Bold & Full-bodied', 'Light & Crisp', 'Fruity', 'Dry', 'Sweet',
-  'Earthy', 'Mineral', 'Oaky', 'Tannic', 'Smooth',
-  'Floral', 'Herbal', 'Spicy', 'Citrusy', 'Buttery',
-];
+
 const AVOIDANCES = [
   'High tannins', 'Very sweet', 'High alcohol', 'Heavy oak',
   'Sulfites', 'Very acidic', 'Cheap blends',
@@ -63,9 +69,9 @@ export default function Preferences() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const [wineTypes, setWineTypes] = useState<string[]>([]);
+
+
   const [regions, setRegions] = useState<string[]>([]);
-  const [flavorProfiles, setFlavorProfiles] = useState<string[]>([]);
   const [avoidances, setAvoidances] = useState<string[]>([]);
   const [budgetMin, setBudgetMin] = useState(15);
   const [budgetMax, setBudgetMax] = useState(50);
@@ -73,6 +79,16 @@ export default function Preferences() {
   const [restaurantBudgetMax, setRestaurantBudgetMax] = useState(125);
   const [adventurousness, setAdventurousness] = useState<'low' | 'medium' | 'high'>('medium');
   const restaurantManuallyEdited = useRef(false);
+
+  // New preferences
+  const [bodyRange, setBodyRange] = useState<[number, number]>([1, 10]);
+  const [sweetnessRange, setSweetnessRange] = useState<[number, number]>([1, 10]);
+  const [tanninsRange, setTanninsRange] = useState<[number, number]>([1, 10]);
+  const [acidityRange, setAcidityRange] = useState<[number, number]>([1, 10]);
+  const [earthinessRange, setEarthinessRange] = useState<[number, number]>([1, 10]);
+  
+  const [varietalPreferences, setVarietalPreferences] = useState<Record<string, 'love' | 'neutral' | 'avoid'>>({});
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     loadPreferences();
@@ -87,9 +103,7 @@ export default function Preferences() {
       .maybeSingle();
 
     if (data) {
-      setWineTypes(data.wine_types || []);
       setRegions(data.regions || []);
-      setFlavorProfiles(data.flavor_profiles || []);
       setAvoidances(data.avoidances || []);
       setBudgetMin(data.default_budget_min ?? 15);
       setBudgetMax(data.default_budget_max ?? 50);
@@ -99,12 +113,65 @@ export default function Preferences() {
       if (data.restaurant_budget_min != null || data.restaurant_budget_max != null) {
         restaurantManuallyEdited.current = true;
       }
+
+      // Load new fields
+      setBodyRange([data.body_min ?? 1, data.body_max ?? 10]);
+      setSweetnessRange([data.sweetness_min ?? 1, data.sweetness_max ?? 10]);
+      setTanninsRange([data.tannins_min ?? 1, data.tannins_max ?? 10]);
+      setAcidityRange([data.acidity_min ?? 1, data.acidity_max ?? 10]);
+      setEarthinessRange([data.earthiness_min ?? 1, data.earthiness_max ?? 10]);
+      setVarietalPreferences(data.varietal_preferences || {});
+      
+      // Auto-expand categories if they have any preferences set?
+      // Optional, but helpful.
     }
     setLoading(false);
   };
 
   const toggle = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
+  };
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category) 
+        : [...prev, category]
+    );
+  };
+
+  const cycleVarietalPreference = (varietal: string) => {
+    setVarietalPreferences(prev => {
+      const current = prev[varietal] || 'neutral';
+      let next: 'love' | 'neutral' | 'avoid' = 'neutral';
+      if (current === 'neutral') next = 'love';
+      else if (current === 'love') next = 'avoid';
+      else if (current === 'avoid') next = 'neutral';
+      
+      const newPrefs = { ...prev };
+      if (next === 'neutral') {
+        delete newPrefs[varietal];
+      } else {
+        newPrefs[varietal] = next;
+      }
+      return newPrefs;
+    });
+  };
+
+  const getVarietalIcon = (status?: string) => {
+    switch (status) {
+      case 'love': return <Heart className="w-4 h-4 text-emerald-400 fill-emerald-400" />;
+      case 'avoid': return <X className="w-4 h-4 text-red-400" />;
+      default: return <Minus className="w-4 h-4 text-stone-600" />;
+    }
+  };
+  
+  const getVarietalClass = (status?: string) => {
+    switch (status) {
+      case 'love': return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100';
+      case 'avoid': return 'bg-red-500/10 border-red-500/30 text-red-100';
+      default: return 'bg-white/5 border-white/5 text-stone-400 hover:bg-white/10';
+    }
   };
 
   const handleSave = async () => {
@@ -114,9 +181,7 @@ export default function Preferences() {
 
     const payload = {
       user_id: user.id,
-      wine_types: wineTypes,
       regions,
-      flavor_profiles: flavorProfiles,
       avoidances,
       default_budget_min: budgetMin,
       default_budget_max: budgetMax,
@@ -124,6 +189,14 @@ export default function Preferences() {
       restaurant_budget_max: restaurantBudgetMax,
       adventurousness,
       updated_at: new Date().toISOString(),
+      
+      // New fields
+      body_min: bodyRange[0], body_max: bodyRange[1],
+      sweetness_min: sweetnessRange[0], sweetness_max: sweetnessRange[1],
+      tannins_min: tanninsRange[0], tannins_max: tanninsRange[1],
+      acidity_min: acidityRange[0], acidity_max: acidityRange[1],
+      earthiness_min: earthinessRange[0], earthiness_max: earthinessRange[1],
+      varietal_preferences: varietalPreferences,
     };
 
     const { data: existing } = await supabase
@@ -172,31 +245,120 @@ export default function Preferences() {
         </Link>
       </div>
 
-      <div className="space-y-10">
-        <section>
-          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Wine Types</h2>
-          <p className="text-sm text-stone-500 mb-4">Select the types of wine you enjoy most.</p>
-          <TagGrid options={WINE_TYPES} selected={wineTypes} onToggle={(v) => toggle(wineTypes, v, setWineTypes)} />
+      <div className="space-y-12">
+        {/* Flavor Profile Section */}
+        <section className="space-y-6">
+          <div className="border-b border-white/10 pb-4">
+            <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-1">Flavor Profile</h2>
+            <p className="text-sm text-stone-500">Define your ideal range for each characteristic.</p>
+          </div>
+          
+          <div className="space-y-8 px-2">
+            <TasteSlider
+              label="Body"
+              leftLabel="Light"
+              rightLabel="Full"
+              value={bodyRange}
+              onChange={setBodyRange}
+            />
+            <TasteSlider
+              label="Sweetness"
+              leftLabel="Bone Dry"
+              rightLabel="Sweet"
+              value={sweetnessRange}
+              onChange={setSweetnessRange}
+            />
+             <TasteSlider
+              label="Tannins"
+              leftLabel="Smooth"
+              rightLabel="Grippy"
+              value={tanninsRange}
+              onChange={setTanninsRange}
+            />
+             <TasteSlider
+              label="Acidity"
+              leftLabel="Soft"
+              rightLabel="Zesty"
+              value={acidityRange}
+              onChange={setAcidityRange}
+            />
+             <TasteSlider
+              label="Earthiness"
+              leftLabel="Fruit-Forward"
+              rightLabel="Savory/Earthy"
+              value={earthinessRange}
+              onChange={setEarthinessRange}
+            />
+          </div>
         </section>
 
+        {/* Wine Types Section */}
+        <section className="space-y-6">
+          <div className="border-b border-white/10 pb-4">
+            <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-1">Wine Types</h2>
+            <p className="text-sm text-stone-500">Tell us which varietals you love or avoid.</p>
+          </div>
+          
+          <div className="space-y-3">
+            {Object.entries(WINE_VARIETALS).map(([category, varietals]) => {
+              const isExpanded = expandedCategories.includes(category);
+              const activeCount = varietals.filter(v => varietalPreferences[v]).length;
+              
+              return (
+                <div key={category} className="border border-white/5 rounded-2xl overflow-hidden bg-white/5">
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-champagne-100">{category}</span>
+                      {activeCount > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-somm-red-500/20 text-somm-red-200 border border-somm-red-500/30">
+                          {activeCount} set
+                        </span>
+                      )}
+                    </div>
+                    {isExpanded ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="px-5 pb-5 pt-2 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
+                      {varietals.map(varietal => {
+                        const status = varietalPreferences[varietal];
+                        return (
+                          <button
+                            key={varietal}
+                            onClick={() => cycleVarietalPreference(varietal)}
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-200 ${getVarietalClass(status)}`}
+                          >
+                            <span className="text-sm font-medium">{varietal}</span>
+                            <div className="ml-2 pt-1">{getVarietalIcon(status)}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Regions */}
         <section>
           <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Regions</h2>
           <p className="text-sm text-stone-500 mb-4">Pick your favorite wine-producing regions.</p>
           <TagGrid options={REGIONS} selected={regions} onToggle={(v) => toggle(regions, v, setRegions)} />
         </section>
 
-        <section>
-          <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Flavor Profile</h2>
-          <p className="text-sm text-stone-500 mb-4">What flavors and characteristics do you prefer?</p>
-          <TagGrid options={FLAVOR_PROFILES} selected={flavorProfiles} onToggle={(v) => toggle(flavorProfiles, v, setFlavorProfiles)} />
-        </section>
-
+        {/* Avoidances */}
         <section>
           <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Avoidances</h2>
           <p className="text-sm text-stone-500 mb-4">Anything you'd rather skip?</p>
           <TagGrid options={AVOIDANCES} selected={avoidances} onToggle={(v) => toggle(avoidances, v, setAvoidances)} color="red" />
         </section>
 
+        {/* Adventurousness */}
         <section>
           <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Adventurousness</h2>
           <p className="text-sm text-stone-500 mb-4">How open are you to trying new or unexpected wines?</p>
@@ -226,6 +388,7 @@ export default function Preferences() {
           </div>
         </section>
 
+        {/* Budget */}
         <section>
           <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-3">Budget</h2>
           <p className="text-sm text-stone-500 mb-6">Your typical price range per bottle in different settings.</p>

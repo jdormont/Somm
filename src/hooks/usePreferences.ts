@@ -14,6 +14,21 @@ export interface UserPreferences {
   restaurant_budget_max: number;
   adventurousness: 'low' | 'medium' | 'high';
   onboarding_completed?: boolean;
+  
+  // Spectrum preferences (1-10)
+  body_min?: number;
+  body_max?: number;
+  sweetness_min?: number;
+  sweetness_max?: number;
+  tannins_min?: number;
+  tannins_max?: number;
+  acidity_min?: number;
+  acidity_max?: number;
+  earthiness_min?: number;
+  earthiness_max?: number;
+  
+  // Varietal preferences map
+  varietal_preferences?: Record<string, 'love' | 'neutral' | 'avoid'>;
 }
 
 export function usePreferences() {
