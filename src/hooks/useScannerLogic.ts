@@ -80,7 +80,7 @@ export function useScannerLogic() {
       const [{ data: prefs }, { data: memories }] = await Promise.all([
         supabase
           .from('user_preferences')
-          .select('wine_types, regions, flavor_profiles, avoidances, adventurousness')
+          .select('wine_types, regions, flavor_profiles, avoidances, adventurousness, body_min, body_max, sweetness_min, sweetness_max, tannins_min, tannins_max, acidity_min, acidity_max, earthiness_min, earthiness_max')
           .eq('user_id', user.id)
           .maybeSingle(),
         supabase
@@ -97,6 +97,12 @@ export function useScannerLogic() {
         flavor_profiles: prefs?.flavor_profiles || [],
         avoidances: prefs?.avoidances || [],
         adventurousness: prefs?.adventurousness || 'medium',
+        // Spectrum Preferences
+        body: { min: prefs?.body_min ?? 1, max: prefs?.body_max ?? 10 },
+        sweetness: { min: prefs?.sweetness_min ?? 1, max: prefs?.sweetness_max ?? 10 },
+        tannins: { min: prefs?.tannins_min ?? 1, max: prefs?.tannins_max ?? 10 },
+        acidity: { min: prefs?.acidity_min ?? 1, max: prefs?.acidity_max ?? 10 },
+        earthiness: { min: prefs?.earthiness_min ?? 1, max: prefs?.earthiness_max ?? 10 },
       };
 
       // 1. Analyze

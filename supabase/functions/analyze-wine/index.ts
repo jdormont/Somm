@@ -26,6 +26,11 @@ interface AnalyzeRequest {
     flavor_profiles: string[];
     avoidances: string[];
     adventurousness: string;
+    body?: { min: number; max: number };
+    sweetness?: { min: number; max: number };
+    tannins?: { min: number; max: number };
+    acidity?: { min: number; max: number };
+    earthiness?: { min: number; max: number };
   };
   wine_memories: WineMemory[];
   budget_min: number;
@@ -44,6 +49,34 @@ function buildUserProfile(
 
   const loved = memories.filter((m) => m.rating >= 4);
   const disliked = memories.filter((m) => m.rating <= 2);
+
+  // 1. Spectrum Preferences (High Priority)
+  const ranges = [
+      { name: "Body", val: prefs.body },
+      { name: "Sweetness", val: prefs.sweetness },
+      { name: "Tannins", val: prefs.tannins },
+      { name: "Acidity", val: prefs.acidity },
+      { name: "Earthiness", val: prefs.earthiness }
+  ];
+
+  const spectrumLines: string[] = [];
+  ranges.forEach(r => {
+      if (r.val && (r.val.min > 1 || r.val.max < 10)) {
+          // Map to descriptive text
+          let desc = "";
+          if (r.name === "Body") desc = r.val.max <= 4 ? "Light-bodied" : r.val.min >= 7 ? "Full-bodied" : "Medium-bodied";
+          if (r.name === "Tannins") desc = r.val.max <= 4 ? "Low Tannins (Smooth/Silk)" : r.val.min >= 7 ? "High Tannins (Grippy/Structured)" : "Medium Tannins";
+          if (r.name === "Acidity") desc = r.val.max <= 4 ? "Low Acidity (Soft)" : r.val.min >= 7 ? "High Acidity (Crisp/Zingy)" : "Medium Acidity";
+          if (r.name === "Sweetness") desc = r.val.max <= 2 ? "Bone Dry" : r.val.min >= 5 ? "Sweet/Dessert" : "Dry to Off-Dry";
+          if (r.name === "Earthiness") desc = r.val.max <= 4 ? "Fruit Forward" : r.val.min >= 7 ? "Savory/Earthy" : "Balanced";
+          
+          spectrumLines.push(`${r.name}: ${r.val.min}-${r.val.max} (${desc})`);
+      }
+  });
+
+  if (spectrumLines.length > 0) {
+      lines.push(`* **Strict Taste Preferences:**\n    - ${spectrumLines.join("\n    - ")}`);
+  }
 
   if (prefs.wine_types.length > 0 || prefs.flavor_profiles.length > 0 || loved.length > 0) {
     const loves: string[] = [];
