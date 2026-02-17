@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Wine, Sparkles, X, ChevronRight, Check, Store, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { FLAVOR_TAG_MAPPINGS } from '../constants/wine_mappings';
 
 const WINE_TYPES = ['Red', 'White', 'Rosé', 'Sparkling', 'Dessert', 'Fortified', 'Orange'];
 const REGIONS = [
@@ -108,11 +109,57 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
     if (!user) return;
     setLoading(true);
 
+    // Calculate spectrum ranges based on selected flavor profiles
+    const spectrums: Record<string, { min: number; max: number }> = {
+      body: { min: 1, max: 10 },
+      sweetness: { min: 1, max: 10 },
+      tannins: { min: 1, max: 10 },
+      acidity: { min: 1, max: 10 },
+      earthiness: { min: 1, max: 10 },
+    };
+
+    // Iterate through selected tags and apply mappings
+    flavorProfiles.forEach((tag) => {
+      const mapping = FLAVOR_TAG_MAPPINGS[tag];
+      if (mapping) {
+        if (mapping.body) {
+           spectrums.body.min = Math.max(spectrums.body.min, mapping.body.min);
+           spectrums.body.max = Math.min(spectrums.body.max, mapping.body.max);
+        }
+        if (mapping.sweetness) {
+           spectrums.sweetness.min = Math.max(spectrums.sweetness.min, mapping.sweetness.min);
+           spectrums.sweetness.max = Math.min(spectrums.sweetness.max, mapping.sweetness.max);
+        }
+        if (mapping.tannins) {
+           spectrums.tannins.min = Math.max(spectrums.tannins.min, mapping.tannins.min);
+           spectrums.tannins.max = Math.min(spectrums.tannins.max, mapping.tannins.max);
+        }
+        if (mapping.acidity) {
+           spectrums.acidity.min = Math.max(spectrums.acidity.min, mapping.acidity.min);
+           spectrums.acidity.max = Math.min(spectrums.acidity.max, mapping.acidity.max);
+        }
+        if (mapping.earthiness) {
+           spectrums.earthiness.min = Math.max(spectrums.earthiness.min, mapping.earthiness.min);
+           spectrums.earthiness.max = Math.min(spectrums.earthiness.max, mapping.earthiness.max);
+        }
+      }
+    });
+
+    // Ensure min <= max after intersections (if conflicting tags were selected)
+    // If min > max, we reset to a "middle ground" or the union. 
+    // Let's take a simple approach: if invalid, reset to 1-10 or a generous middle 4-7.
+    Object.keys(spectrums).forEach((key) => {
+        if (spectrums[key].min > spectrums[key].max) {
+            spectrums[key].min = 4;
+            spectrums[key].max = 7;
+        }
+    });
+
     const payload = {
       user_id: user.id,
       wine_types: wineTypes,
       regions,
-      flavor_profiles: flavorProfiles,
+      flavor_profiles: flavorProfiles, // Still save the tags for UI consistency
       avoidances,
       default_budget_min: budgetMin,
       default_budget_max: budgetMax,
@@ -120,6 +167,13 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
       restaurant_budget_max: restaurantBudgetMax,
       adventurousness,
       updated_at: new Date().toISOString(),
+      
+      // New mapped columns
+      body_min: spectrums.body.min, body_max: spectrums.body.max,
+      sweetness_min: spectrums.sweetness.min, sweetness_max: spectrums.sweetness.max,
+      tannins_min: spectrums.tannins.min, tannins_max: spectrums.tannins.max,
+      acidity_min: spectrums.acidity.min, acidity_max: spectrums.acidity.max,
+      earthiness_min: spectrums.earthiness.min, earthiness_max: spectrums.earthiness.max,
     };
 
     // Upsert preferences
