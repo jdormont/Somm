@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import TasteSlider from '../components/TasteSlider';
+import TasteCalibrator from '../components/TasteCalibrator';
+import { useTasteCalibration, TasteAnchor } from '../hooks/useTasteCalibration';
 
 const WINE_VARIETALS: Record<string, string[]> = {
   Red: ['Cabernet Sauvignon', 'Merlot', 'Pinot Noir', 'Syrah/Shiraz', 'Malbec', 'Zinfandel', 'Sangiovese', 'Nebbiolo', 'Grenache', 'Tempranillo'],
@@ -69,8 +71,6 @@ export default function Preferences() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-
-
   const [regions, setRegions] = useState<string[]>([]);
   const [avoidances, setAvoidances] = useState<string[]>([]);
   const [budgetMin, setBudgetMin] = useState(15);
@@ -90,12 +90,25 @@ export default function Preferences() {
   const [varietalPreferences, setVarietalPreferences] = useState<Record<string, 'love' | 'neutral' | 'avoid'>>({});
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
+  // Taste Anchors
+  const [anchors, setAnchors] = useState<TasteAnchor[]>([]);
+  const { suggestedProfile } = useTasteCalibration(anchors);
+
   useEffect(() => {
     loadPreferences();
   }, [user]);
 
   const loadPreferences = async () => {
     if (!user) return;
+    
+    // Load anchors
+    const { data: anchorsData } = await supabase
+        .from('user_taste_anchors')
+        .select('*')
+        .eq('user_id', user.id);
+        
+    setAnchors(anchorsData || []);
+
     const { data } = await supabase
       .from('user_preferences')
       .select('*')
@@ -121,9 +134,6 @@ export default function Preferences() {
       setAcidityRange([data.acidity_min ?? 1, data.acidity_max ?? 10]);
       setEarthinessRange([data.earthiness_min ?? 1, data.earthiness_max ?? 10]);
       setVarietalPreferences(data.varietal_preferences || {});
-      
-      // Auto-expand categories if they have any preferences set?
-      // Optional, but helpful.
     }
     setLoading(false);
   };
@@ -138,6 +148,24 @@ export default function Preferences() {
         ? prev.filter(c => c !== category) 
         : [...prev, category]
     );
+  };
+
+
+  const handleApplyCalibration = () => {
+      if (!suggestedProfile) return;
+      
+      // Helper to create a range centered on the calibrated value
+      const setRange = (val: number) => {
+          const min = Math.max(1, val - 1);
+          const max = Math.min(10, val + 1);
+          return [min, max] as [number, number];
+      };
+
+      setBodyRange(setRange(suggestedProfile.body));
+      setSweetnessRange(setRange(suggestedProfile.sweetness));
+      setTanninsRange(setRange(suggestedProfile.tannins));
+      setAcidityRange(setRange(suggestedProfile.acidity));
+      setEarthinessRange(setRange(suggestedProfile.earthiness));
   };
 
   const cycleVarietalPreference = (varietal: string) => {
@@ -246,8 +274,28 @@ export default function Preferences() {
       </div>
 
       <div className="space-y-12">
+        {/* Taste Calibrator */}
+        <TasteCalibrator 
+            anchors={anchors} 
+            onAnchorsChange={(newAnchors) => {
+                setAnchors(newAnchors);
+                // Optionally auto-calibrate on add
+                if (newAnchors.length > anchors.length) {
+                    // We need to wait for the next render for suggestedProfile to update?
+                    // Actually the hook updates immediately if we pass the new anchors to it, 
+                    // but here we are setting state.
+                    // We can rely on the user clicking "Apply" or "Recalibrate" for now to be explicit,
+                    // or use a separate effect. 
+                    // For now, let's just update the list. The user can click Recalibrate.
+                    // Or we can call handleApplyCalibration in an effect.
+                }
+            }}
+            onApplyCalibration={handleApplyCalibration}
+        />
+
         {/* Flavor Profile Section */}
         <section className="space-y-6">
+
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-sm font-semibold text-champagne-100 uppercase tracking-wider mb-1">Flavor Profile</h2>
             <p className="text-sm text-stone-500">Define your ideal range for each characteristic.</p>

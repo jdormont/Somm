@@ -1,8 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import Scanner from '../Scanner';
 import { renderWithProviders } from '../../test/utils';
-import { scanService } from '../../services/scanService';
 
 // Mock services
 vi.mock('../../services/scanService', () => ({

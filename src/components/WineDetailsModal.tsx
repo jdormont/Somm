@@ -1,4 +1,4 @@
-import { X, Droplet, Wind, Grape, Beaker, Wine as WineIcon } from 'lucide-react';
+import { X, Droplet, Grape, Beaker, Wine as WineIcon } from 'lucide-react';
 import type { WineRecommendation } from '../types';
 
 interface WineDetailsModalProps {

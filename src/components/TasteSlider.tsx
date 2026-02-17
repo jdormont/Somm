@@ -96,7 +96,7 @@ export default function TasteSlider({
           className={`absolute w-5 h-5 bg-champagne-100 border-2 border-somm-red-500 rounded-full shadow-lg cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-10 ${isDragging === 'min' ? 'scale-110 z-20' : ''}`}
           style={{ left: `calc(${getPercentage(minVal)}% - 10px)` }}
           onMouseDown={(e) => { e.preventDefault(); setIsDragging('min'); }}
-          onTouchStart={(e) => { setIsDragging('min'); }}
+          onTouchStart={() => { setIsDragging('min'); }}
         />
 
         {/* Max Thumb */}
@@ -104,7 +104,7 @@ export default function TasteSlider({
           className={`absolute w-5 h-5 bg-champagne-100 border-2 border-somm-red-500 rounded-full shadow-lg cursor-grab active:cursor-grabbing hover:scale-110 transition-transform z-10 ${isDragging === 'max' ? 'scale-110 z-20' : ''}`}
           style={{ left: `calc(${getPercentage(maxVal)}% - 10px)` }}
           onMouseDown={(e) => { e.preventDefault(); setIsDragging('max'); }}
-          onTouchStart={(e) => { setIsDragging('max'); }}
+          onTouchStart={() => { setIsDragging('max'); }}
         />
         
         {/* Ticks (Visual Guide) */}
