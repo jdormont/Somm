@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ScanLine, Clock, Wine, DollarSign, Loader2, ArrowRight, Heart, Settings, Search, X, Store, UtensilsCrossed, TrendingUp } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ScanSession, ContextType, DateFilter } from '../types';
 import { useScans } from '../hooks/useScans';
-import { useQuery } from '@tanstack/react-query';
+import { usePreferences } from '../hooks/usePreferences';
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -50,19 +49,8 @@ export default function Dashboard() {
   // Data Fetching with React Query
   const { data: sessions = [], isLoading: loadingScans } = useScans(user?.id);
   
-  // Prefs Check (Separate query for simple boolean check)
-  const { data: hasPrefs, isLoading: loadingPrefs } = useQuery({
-    queryKey: ['hasPrefs', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('user_preferences')
-        .select('id')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      return !!data;
-    },
-    enabled: !!user,
-  });
+  const { preferences, loading: loadingPrefs } = usePreferences();
+  const hasPrefs = !!preferences;
 
   const hasApiKey = !!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key;
 

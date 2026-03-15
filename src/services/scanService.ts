@@ -8,7 +8,7 @@ export const scanService = {
   async getSessions(userId: string): Promise<ScanSession[]> {
     const { data, error } = await supabase
       .from('scan_sessions')
-      .select('*')
+      .select('id, user_id, context, notes, summary, created_at, budget_min, budget_max, wines_detected, recommendations')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -14,7 +14,7 @@ export interface UserPreferences {
   restaurant_budget_max: number;
   adventurousness: 'low' | 'medium' | 'high';
   onboarding_completed?: boolean;
-  
+
   // Spectrum preferences (1-10)
   body_min?: number;
   body_max?: number;
@@ -26,35 +26,39 @@ export interface UserPreferences {
   acidity_max?: number;
   earthiness_min?: number;
   earthiness_max?: number;
-  
+
   // Varietal preferences map
   varietal_preferences?: Record<string, 'love' | 'neutral' | 'avoid'>;
 }
 
+export const PREFS_QUERY_KEY = (userId: string) => ['preferences', userId];
+
 export function usePreferences() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const queryClient = useQueryClient();
 
-  const loadPreferences = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (data) {
-      setPreferences(data);
-    }
-    setLoading(false);
-  };
+  const { data: preferences = null, isLoading: loading } = useQuery({
+    queryKey: user ? PREFS_QUERY_KEY(user.id) : ['preferences', null],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      return (data as UserPreferences | null);
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes — preferences change infrequently
+  });
 
   const updatePreferences = async (updates: Partial<UserPreferences>) => {
     if (!user) return;
-    
-    // Optimistic update
-    setPreferences(prev => prev ? { ...prev, ...updates } : updates as UserPreferences);
+
+    // Optimistic update into the cache
+    queryClient.setQueryData(
+      PREFS_QUERY_KEY(user.id),
+      (old: UserPreferences | null) => old ? { ...old, ...updates } : (updates as UserPreferences)
+    );
 
     const { error } = await supabase
       .from('user_preferences')
@@ -65,33 +69,25 @@ export function usePreferences() {
       });
 
     if (error) {
-      // Revert or handle error
       console.error('Failed to update preferences:', error);
-      loadPreferences(); // Reload from server on error
+      // Invalidate so the cache refetches the real server state
+      queryClient.invalidateQueries({ queryKey: PREFS_QUERY_KEY(user.id) });
     }
   };
 
   const completeOnboarding = async () => {
     if (!user) return;
-    
-    // Update local state first
-    // Note: This relies on user_profiles, not user_preferences table for the flag
     const { error } = await supabase
       .from('user_profiles')
       .update({ onboarding_completed: true })
       .eq('user_id', user.id);
-
     if (error) console.error('Failed to complete onboarding:', error);
   };
-
-  useEffect(() => {
-    loadPreferences();
-  }, [user]);
 
   return {
     preferences,
     loading,
     updatePreferences,
-    completeOnboarding
+    completeOnboarding,
   };
 }

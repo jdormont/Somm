@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePreferences } from './usePreferences';
 import { useCreateScan, useAnalyzeWine } from './useScans';
 import { ScanResult, ContextType, WineInput } from '../types';
 
@@ -9,6 +10,7 @@ const API_KEY_STORAGE_KEY = 'somm_openai_api_key';
 
 export function useScannerLogic() {
   const { user, session, profile } = useAuth();
+  const { preferences: cachedPrefs } = usePreferences();
   const navigate = useNavigate();
   
   // State
@@ -38,25 +40,14 @@ export function useScannerLogic() {
   const setBudgetMin = context === 'store' ? setStoreBudgetMin : setRestaurantBudgetMin;
   const setBudgetMax = context === 'store' ? setStoreBudgetMax : setRestaurantBudgetMax;
 
-  // Load defaults on mount
+  // Populate budget defaults from the shared preferences cache
   useEffect(() => {
-    async function loadDefaults() {
-      if (!user) return;
-      const { data } = await supabase
-        .from('user_preferences')
-        .select('default_budget_min, default_budget_max, restaurant_budget_min, restaurant_budget_max')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (data) {
-        setStoreBudgetMin(data.default_budget_min ?? 15);
-        setStoreBudgetMax(data.default_budget_max ?? 50);
-        setRestaurantBudgetMin(data.restaurant_budget_min ?? 38);
-        setRestaurantBudgetMax(data.restaurant_budget_max ?? 125);
-      }
-    }
-    loadDefaults();
-  }, [user]);
+    if (!cachedPrefs) return;
+    setStoreBudgetMin(cachedPrefs.default_budget_min ?? 15);
+    setStoreBudgetMax(cachedPrefs.default_budget_max ?? 50);
+    setRestaurantBudgetMin(cachedPrefs.restaurant_budget_min ?? 38);
+    setRestaurantBudgetMax(cachedPrefs.restaurant_budget_max ?? 125);
+  }, [cachedPrefs]);
 
   const handleAnalyze = async () => {
     if (!imageBase64 || !user || !session) return;
@@ -76,21 +67,15 @@ export function useScannerLogic() {
     const finalBudgetMax = budgetMax === '' ? 0 : budgetMax;
 
     try {
-      // Fetch prefs and memories
-      const [{ data: prefs }, { data: memories }] = await Promise.all([
-        supabase
-          .from('user_preferences')
-          .select('wine_types, regions, flavor_profiles, avoidances, adventurousness, body_min, body_max, sweetness_min, sweetness_max, tannins_min, tannins_max, acidity_min, acidity_max, earthiness_min, earthiness_max')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('wine_memories')
-          .select('name, producer, vintage, type, region, rating, notes')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(100),
-      ]);
+      // Fetch wine memories fresh; preferences come from the shared React Query cache
+      const { data: memories } = await supabase
+        .from('wine_memories')
+        .select('name, producer, vintage, type, region, rating, notes')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
+      const prefs = cachedPrefs;
       const preferences = {
         wine_types: prefs?.wine_types || [],
         regions: prefs?.regions || [],

@@ -41,6 +41,57 @@ interface AnalyzeRequest {
   openai_api_key?: string;
 }
 
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i').replace(/[òóôõö]/g, 'o')
+    .replace(/[ùúûü]/g, 'u').replace(/[ñ]/g, 'n').replace(/[ç]/g, 'c')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenSimilarity(a: string, b: string): number {
+  const tokensA = new Set(normalizeName(a).split(' ').filter((t) => t.length > 1));
+  const tokensB = new Set(normalizeName(b).split(' ').filter((t) => t.length > 1));
+  if (tokensA.size === 0 && tokensB.size === 0) return 1;
+  if (tokensA.size === 0 || tokensB.size === 0) return 0;
+  let intersection = 0;
+  for (const t of tokensA) {
+    if (tokensB.has(t)) intersection++;
+  }
+  return intersection / (tokensA.size + tokensB.size - intersection);
+}
+
+function findBestMatch(
+  name: string,
+  scoredMap: Record<string, { s1: number; s2: number }>
+): { s1: number; s2: number } | null {
+  const SIMILARITY_THRESHOLD = 0.4;
+
+  // 1. Exact match
+  if (scoredMap[name]) return scoredMap[name];
+
+  // 2. Normalized exact match (handles accents, punctuation, casing)
+  const normalizedTarget = normalizeName(name);
+  for (const [key, scores] of Object.entries(scoredMap)) {
+    if (normalizeName(key) === normalizedTarget) return scores;
+  }
+
+  // 3. Token-based fuzzy match (handles word reordering, partial names)
+  let bestScore = 0;
+  let bestMatch: { s1: number; s2: number } | null = null;
+  for (const [key, scores] of Object.entries(scoredMap)) {
+    const sim = tokenSimilarity(name, key);
+    if (sim > bestScore) {
+      bestScore = sim;
+      bestMatch = scores;
+    }
+  }
+  return bestScore >= SIMILARITY_THRESHOLD ? bestMatch : null;
+}
+
 function buildUserProfile(
   prefs: AnalyzeRequest["preferences"],
   memories: WineMemory[]
@@ -345,7 +396,7 @@ Deno.serve(async (req: Request) => {
     // -------------------------------------------------------------------------
 
     const candidates = rawWines.map((wine: any) => {
-       const scores = scoredWinesMap[wine.n] || { s1: 0, s2: 0 }; // Fallback if name mismatch
+       const scores = findBestMatch(wine.n, scoredWinesMap) ?? { s1: 0, s2: 0 };
        
        // Map back to full keys for frontend/DB
        const mapped = {
