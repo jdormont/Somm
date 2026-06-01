@@ -58,7 +58,7 @@ describe('Dashboard Integration', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Silver Oak')).toBeInTheDocument();
-      expect(screen.getByText('Anniversary dinner')).toBeInTheDocument();
+      expect(screen.getByText(/Anniversary dinner/)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 });

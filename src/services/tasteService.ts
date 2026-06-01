@@ -49,9 +49,9 @@ export const tasteService = {
        
        // Try to parse the response error from the context
        try {
-         // @ts-ignore - Supabase error context type isn't fully exposed but exists at runtime
+         // @ts-ignore -- Supabase error context type is not fully exposed but exists at runtime
          if (error.context && typeof error.context.json === 'function') {
-            // @ts-ignore
+            // @ts-ignore -- accessing runtime context.json() not in Supabase type definitions
             const body = await error.context.json();
             if (body && body.error) {
                 throw new Error(body.error);
