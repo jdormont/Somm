@@ -154,8 +154,9 @@ These improvements define Somm's long-term differentiation and market positionin
 | Item | Status | Notes |
 |------|--------|-------|
 | React Error Boundaries (Tier 1.1) | ✅ Completed | Direct commit — June 1, 2026 |
+| CI/CD Pipeline (Tier 1.4) | ✅ Completed | Branch `claude/busy-rubin-BslBA` — June 1, 2026 |
 
-**Remaining open items from previous assessment:** Scan History Search (1.2), "I Chose This" feedback loop (1.3), Pooled API Key (2.1), CSV Export (2.2), CI/CD Pipeline (2.3), Wine Circles (3.1), Restaurant Integration (3.2), Offline PWA (3.3).
+**Remaining open items from previous assessment:** Scan History Search (1.2), "I Chose This" feedback loop (1.3), Pooled API Key (2.1), CSV Export (2.2), Wine Circles (3.1), Restaurant Integration (3.2), Offline PWA (3.3).
 
 **New findings from current codebase review (June 1, 2026):**
 - `src/pages/Preferences.tsx` is **23,654 bytes** — the largest page component, managing taste spectrum sliders, varietal toggles, budget ranges, and food pairing in a single scrolling form.
@@ -191,15 +192,9 @@ See the May 31 entry above for full description and agent prompt.
 
 ---
 
-#### 1.4 CI/CD Pipeline with GitHub Actions (Elevated from Tier 2)
+#### 1.4 CI/CD Pipeline with GitHub Actions ✅ **COMPLETED** (June 1, 2026)
 
-**Description:** Somm is the only app in this portfolio without automated CI. With error boundaries now merged and active development continuing, TypeScript type regressions and ESLint violations can land on `main` undetected. The `src/pages/__tests__` directory exists but tests run only when a developer manually triggers them. Elevating CI/CD from Tier 2 reflects that the app is actively evolving and the absence of a quality gate is now the most pressing infrastructure gap.
-
-**Estimated Effort:** 1 day  
-**Expected Impact:** High ongoing — prevents type regressions from landing on `main`; enforces code quality automatically on every push; establishes the baseline for all future improvements to the scanner and recommendation flows.
-
-**Agent Prompt:**
-> Create `.github/workflows/ci.yml` for the Somm repository. Trigger on: `push` to `main` and any `claude/**` branches; `pull_request` targeting `main`. Define three parallel jobs: (1) **Lint** — `npm ci` + `npx eslint src/`; (2) **Type Check** — `npm ci` + `npx tsc --noEmit`; (3) **Test** — `npm ci` + `npx vitest run --reporter=verbose`. Use `actions/setup-node@v4` with Node 20 and `actions/cache@v4` keyed on `package-lock.json` hash. Set placeholder env vars `VITE_SUPABASE_URL=https://placeholder.supabase.co` and `VITE_SUPABASE_ANON_KEY=placeholder` so Vite type resolution doesn't fail on missing secrets. Confirm `supabase/` is excluded from the TypeScript compilation scope in `tsconfig.app.json`. Verify all three jobs complete green on the first push.
+`.github/workflows/ci.yml` created with three parallel jobs: **Lint** (`npx eslint src/`), **Type Check** (`npx tsc --noEmit`), and **Test** (`npx vitest run --reporter=verbose`). Triggers on push to `main` and any `claude/**` branch, and on PRs targeting `main`. Node 20 with `npm ci` caching on `package-lock.json` hash. Placeholder `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` env vars prevent Vite type resolution failures in CI. The `supabase/` directory is excluded from TypeScript compilation scope by `tsconfig.app.json` (`"include": ["src"]` only).
 
 ---
 
