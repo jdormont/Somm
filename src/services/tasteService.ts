@@ -57,7 +57,7 @@ export const tasteService = {
                 throw new Error(body.error);
             }
          }
-       } catch (e) {
+       } catch {
          // Ignore parsing errors and fall back to default message
        }
 
