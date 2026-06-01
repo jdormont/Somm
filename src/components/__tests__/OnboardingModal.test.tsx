@@ -14,14 +14,14 @@ vi.mock('../../lib/supabase', () => ({
     from: (table: string) => {
       if (table === 'user_profiles') {
         return {
-          update: (payload: any) => ({
+          update: (payload: Record<string, unknown>) => ({
             eq: () => Promise.resolve({ data: payload }),
           }),
         };
       }
       if (table === 'user_preferences') {
         return {
-          upsert: (payload: any) => {
+          upsert: (payload: Record<string, unknown>) => {
             mocks.upsert(payload);
             return Promise.resolve({ error: null });
           },

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { screen, render } from '@testing-library/react';
 import { ErrorBoundary, ErrorBoundaryFallback } from '../ErrorBoundary';
 
@@ -10,7 +10,7 @@ const Bomb = ({ shouldThrow = false }: { shouldThrow?: boolean }) => {
 };
 
 describe('ErrorBoundary', () => {
-  let consoleSpy: any;
+  let consoleSpy: MockInstance;
 
   beforeEach(() => {
     consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

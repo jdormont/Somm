@@ -21,13 +21,13 @@ vi.mock('../../lib/supabase', () => ({
               maybeSingle: mocks.select,
             }),
           }),
-          update: (payload: any) => {
+          update: (payload: Record<string, unknown>) => {
             mocks.update(payload);
             return {
               eq: () => Promise.resolve({ data: payload }),
             };
           },
-          insert: (payload: any) => {
+          insert: (payload: Record<string, unknown>) => {
              mocks.insert(payload);
              return Promise.resolve({ data: payload });
           },
