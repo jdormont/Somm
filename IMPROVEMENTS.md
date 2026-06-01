@@ -140,3 +140,123 @@ These improvements define Somm's long-term differentiation and market positionin
 
 **Agent Prompt:**
 > Add PWA offline support for cellar browsing to Somm. Install `vite-plugin-pwa` and configure it in `vite.config.ts` with the `generateSW` strategy. Create `public/manifest.json` with app name "Somm", a wine glass icon, and theme colors matching the app's deep burgundy/slate palette. Configure Workbox to: (1) cache all JS/CSS/font assets with `CacheFirst`; (2) cache Supabase API responses for `wine_memories` (the cellar table) with `NetworkFirst` with a 30-minute TTL, falling back to the cached version when offline; (3) show a minimal `public/offline.html` fallback for all other routes that explains scanning requires internet but the cellar is available offline. Test with Chrome DevTools "Offline" mode to confirm the `/cellar` route loads wine entries without a network connection after a prior online visit. Do not attempt to make the scanner or recommendation engine work offline.
+
+---
+
+## Reassessment — June 1, 2026
+
+*Assessment Date: June 1, 2026*
+
+---
+
+### Progress Since May 31 Assessment
+
+| Item | Status | Notes |
+|------|--------|-------|
+| React Error Boundaries (Tier 1.1) | ✅ Completed | Direct commit — June 1, 2026 |
+
+**Remaining open items from previous assessment:** Scan History Search (1.2), "I Chose This" feedback loop (1.3), Pooled API Key (2.1), CSV Export (2.2), CI/CD Pipeline (2.3), Wine Circles (3.1), Restaurant Integration (3.2), Offline PWA (3.3).
+
+**New findings from current codebase review (June 1, 2026):**
+- `src/pages/Preferences.tsx` is **23,654 bytes** — the largest page component, managing taste spectrum sliders, varietal toggles, budget ranges, and food pairing in a single scrolling form.
+- `src/pages/Scanner.tsx` (20,097 bytes) and `src/pages/ScanDetail.tsx` (15,631 bytes) are the core user-facing flow with no observed test coverage.
+- Somm remains the only app in this portfolio with no CI/CD pipeline — type errors can land on `main` undetected during active development.
+- No `CLAUDE.md` exists, leaving future AI-assisted sessions without project context.
+
+---
+
+### Updated Tier 1 — High-Impact, Quick Wins
+
+---
+
+#### 1.1 React Error Boundaries ✅ **COMPLETED** (June 1, 2026)
+
+`src/components/ErrorBoundary.tsx` implemented with dark wine-themed fallback UI. Scanner page wrapped in its own boundary with "cellar history is safe" messaging. No further action needed.
+
+---
+
+#### 1.2 Scan History Search and Filter *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 2 days | **Expected Impact:** High usability
+
+---
+
+#### 1.3 Close the Recommendation Feedback Loop — "I Chose This" *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 2–3 days | **Expected Impact:** High
+
+---
+
+#### 1.4 CI/CD Pipeline with GitHub Actions (Elevated from Tier 2)
+
+**Description:** Somm is the only app in this portfolio without automated CI. With error boundaries now merged and active development continuing, TypeScript type regressions and ESLint violations can land on `main` undetected. The `src/pages/__tests__` directory exists but tests run only when a developer manually triggers them. Elevating CI/CD from Tier 2 reflects that the app is actively evolving and the absence of a quality gate is now the most pressing infrastructure gap.
+
+**Estimated Effort:** 1 day  
+**Expected Impact:** High ongoing — prevents type regressions from landing on `main`; enforces code quality automatically on every push; establishes the baseline for all future improvements to the scanner and recommendation flows.
+
+**Agent Prompt:**
+> Create `.github/workflows/ci.yml` for the Somm repository. Trigger on: `push` to `main` and any `claude/**` branches; `pull_request` targeting `main`. Define three parallel jobs: (1) **Lint** — `npm ci` + `npx eslint src/`; (2) **Type Check** — `npm ci` + `npx tsc --noEmit`; (3) **Test** — `npm ci` + `npx vitest run --reporter=verbose`. Use `actions/setup-node@v4` with Node 20 and `actions/cache@v4` keyed on `package-lock.json` hash. Set placeholder env vars `VITE_SUPABASE_URL=https://placeholder.supabase.co` and `VITE_SUPABASE_ANON_KEY=placeholder` so Vite type resolution doesn't fail on missing secrets. Confirm `supabase/` is excluded from the TypeScript compilation scope in `tsconfig.app.json`. Verify all three jobs complete green on the first push.
+
+---
+
+### Updated Tier 2 — Medium-Impact, Moderate Effort
+
+---
+
+#### 2.1 Shared/Pooled API Key Model *(Carried Forward — Elevated Priority)*
+
+See the May 31 entry above for full description and agent prompt. With error boundaries protecting the scanner, removing the per-user API key barrier is now the highest-impact growth unlock remaining in Tier 2.
+
+**Estimated Effort:** 3–4 days | **Expected Impact:** High adoption
+
+---
+
+#### 2.2 Preferences.tsx Modularization (23 KB)
+
+**Description:** `src/pages/Preferences.tsx` at 23,654 bytes manages four distinct user preference domains — taste spectrum sliders, grape varietal toggles, budget range settings, and food pairing preferences — in a single scrolling form component. These sections have distinct data shapes, mutation paths, and interaction patterns. Splitting them into focused sub-components reduces cognitive load for future taste-profile enhancements (e.g., adding a new preference dimension or varietal category) and enables per-section unit testing.
+
+**Estimated Effort:** 2 days  
+**Expected Impact:** Medium — reduces complexity of the most-edited settings component; makes future taste-profile enhancements faster to implement; enables per-section testing.
+
+**Agent Prompt:**
+> Refactor `src/pages/Preferences.tsx` in Somm without changing any visible behavior or styling. Extract: (1) `src/components/preferences/TasteSpectrumSection.tsx` — the spectrum sliders (bold↔delicate, dry↔sweet, etc.); (2) `src/components/preferences/VarietalTogglesSection.tsx` — grape varietal include/exclude toggles; (3) `src/components/preferences/BudgetRangeSection.tsx` — per-context (restaurant/store) budget min/max inputs; (4) `src/components/preferences/FoodPairingSection.tsx` — food type preference toggles. Each component should accept the relevant slice of the preferences object as props and call an `onChange(partial)` callback. `Preferences.tsx` should become a thin orchestrator under 200 lines. Run `npx vitest run` and `npx tsc --noEmit` to confirm no regressions.
+
+---
+
+#### 2.3 Scan History Export (CSV) *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 1–2 days | **Expected Impact:** Medium
+
+---
+
+### Updated Tier 3 — Strategic, Longer-Term
+
+---
+
+#### 3.1 Wine Circles — Group Scanning *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 3–4 weeks | **Expected Impact:** High long-term
+
+---
+
+#### 3.2 Restaurant Partnership Integration *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 6–10 weeks | **Expected Impact:** Very high long-term
+
+---
+
+#### 3.3 Offline Cellar Browsing (PWA) *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 3–5 days | **Expected Impact:** Medium
