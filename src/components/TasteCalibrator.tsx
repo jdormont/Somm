@@ -70,8 +70,8 @@ export default function TasteCalibrator({ anchors, onAnchorsChange, onApplyCalib
         onAnchorsChange([...anchors, savedAnchor]);
         setShowInput(false);
 
-    } catch (err: any) {
-        setError(err.message);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
     } finally {
         setAnalyzing(false);
     }

@@ -26,14 +26,14 @@ vi.mock('../../lib/supabase', () => ({
 
 describe('Dashboard Integration', () => {
   it('renders loading state initially', () => {
-    (scanService.getSessions as any).mockReturnValue(new Promise(() => {})); // Never resolves
+    vi.mocked(scanService.getSessions).mockReturnValue(new Promise(() => {})); // Never resolves
     renderWithProviders(<Dashboard />);
     // Check for loader (implementation detail: Loader2 icon usually implies loading)
     // You might need to add a specific test-id for better testing
   });
 
   it('renders empty state when no sessions', async () => {
-    (scanService.getSessions as any).mockResolvedValue([]);
+    vi.mocked(scanService.getSessions).mockResolvedValue([]);
     renderWithProviders(<Dashboard />);
 
     await waitFor(() => {
@@ -53,7 +53,7 @@ describe('Dashboard Integration', () => {
       },
     ];
 
-    (scanService.getSessions as any).mockResolvedValue(mockSessions);
+    vi.mocked(scanService.getSessions).mockResolvedValue(mockSessions);
     renderWithProviders(<Dashboard />);
 
     await waitFor(() => {
