@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import { ErrorBoundary, ErrorBoundaryFallback } from './components/ErrorBoundary';
 
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
@@ -27,41 +28,57 @@ const PageLoader = () => (
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/pending" element={<PendingApproval />} />
-            <Route path="/legal" element={<Legal />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/history/:id" element={<ScanDetail />} />
-              <Route path="/scan" element={<Scanner />} />
-              <Route path="/cellar" element={<Cellar />} />
-              <Route path="/preferences" element={<Preferences />} />
-              <Route path="/knowledge" element={<Knowledge />} />
-              <Route path="/settings" element={<Settings />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/pending" element={<PendingApproval />} />
+              <Route path="/legal" element={<Legal />} />
               <Route
-                path="/admin"
                 element={
-                  <ProtectedRoute requireAdmin>
-                    <Admin />
+                  <ProtectedRoute>
+                    <Layout />
                   </ProtectedRoute>
                 }
-              />
-            </Route>
-          </Routes>
-        </Suspense>
-      </AuthProvider>
-    </BrowserRouter>
+              >
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/history/:id" element={<ScanDetail />} />
+                <Route
+                  path="/scan"
+                  element={
+                    <ErrorBoundary
+                      fallback={
+                        <ErrorBoundaryFallback
+                          title="Scanner Error"
+                          message="Scanner encountered an error — your cellar history is safe."
+                        />
+                      }
+                    >
+                      <Scanner />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route path="/cellar" element={<Cellar />} />
+                <Route path="/preferences" element={<Preferences />} />
+                <Route path="/knowledge" element={<Knowledge />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Admin />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
