@@ -255,3 +255,110 @@ See the May 31 entry above for full description and agent prompt.
 See the May 31 entry above for full description and agent prompt.
 
 **Estimated Effort:** 3–5 days | **Expected Impact:** Medium
+
+---
+
+## Reassessment — June 2, 2026
+
+*Assessment Date: June 2, 2026*
+*Assessment based on: full review of 30 most recent commits, repo file listing, IMPROVEMENTS.md history, and complete commit-level diff analysis including all historical commits.*
+
+---
+
+### Progress Since June 1 Assessment
+
+| Item | Status | Notes |
+|------|--------|-------|
+| React Error Boundaries (Tier 1.1) | ✅ Confirmed Complete | Commit `e694023`, June 1 — captured in June 1 docs |
+| CI/CD Pipeline + lint/type fixes (Tier 1.4) | ✅ Confirmed Complete | Commit `a2be016`, June 1 — captured in June 1 docs |
+
+Both items landed in a single commit on June 1 at 18:50 UTC, after the IMPROVEMENTS.md docs update at 14:21 UTC, and were correctly pre-captured in the June 1 progress table.
+
+**New finding — Pooled API Key may already be partially implemented:** A Feb 7, 2026 commit (`d6dc8f43`, "feat: implement admin-controlled shared API key support") was not detected in the May 31 or June 1 assessments. This predates the IMPROVEMENTS.md and suggests Tier 2.1 ("Shared/Pooled API Key Model") may already be partially or fully live. Before starting Tier 2.1 work, verify whether authenticated normal users are served from a pooled server-side key, or if only admin-approved users benefit.
+
+**Activity signal:** The last non-docs/CI code commit was March 15, 2026 (fuzzy wine matching + React Query preferences — ~11 weeks of dormancy). The June 2 priorities are: confirm the pooled key state, add CLAUDE.md for future session continuity, and pick up the two highest-impact user-facing items (scan history search, "I chose this").
+
+**Remaining open items from June 1:** Scan History Search (1.2), "I Chose This" feedback loop (1.3), Pooled API Key verification/completion (2.1), Preferences.tsx modularization (2.2), CSV Export (2.3), Wine Circles (3.1), Restaurant Integration (3.2), Offline PWA (3.3).
+
+---
+
+### Updated Tier 1 — Quick Wins (June 2, 2026)
+
+---
+
+#### 1.1 React Error Boundaries ✅ **CONFIRMED COMPLETE** (June 1, 2026)
+
+See the June 1 entry above for completion details.
+
+---
+
+#### 1.2 Scan History Search and Filter *(Carried Forward — Status: Open — Top Priority)*
+
+See the May 31 entry above for full description and agent prompt. With CI now enforcing type safety, this work is immediately testable against the existing vitest setup.
+
+**Estimated Effort:** 2 days | **Expected Impact:** High usability
+
+---
+
+#### 1.3 Close the Recommendation Feedback Loop — "I Chose This" *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 2–3 days | **Expected Impact:** High
+
+---
+
+#### 1.4 CI/CD Pipeline ✅ **CONFIRMED COMPLETE** (June 1, 2026)
+
+See the June 1 entry above for completion details.
+
+---
+
+#### 1.5 Add CLAUDE.md Project Context File
+
+**Description:** Somm has no `CLAUDE.md` file, making every AI-assisted development session start cold with no knowledge of the stack, design system, admin-approval flow, API key model, or branching conventions. This was noted in the June 1 assessment but no agent prompt was written. A `CLAUDE.md` takes under an hour and pays dividends on every future session — especially important given the 11-week development gap.
+
+**Estimated Effort:** 30 minutes | **Expected Impact:** Low (developer productivity / session continuity)
+
+**Agent Prompt:**
+> Create `CLAUDE.md` at the root of the Somm repository. Include: **(1) Project overview** — "Somm is a React + TypeScript + Supabase + Vite web app. Users photograph wine lists with their phone camera and receive personalized AI-powered recommendations based on their individual taste profile."; **(2) Tech stack** — Vite, React 18, TypeScript strict, Tailwind CSS, Supabase (auth + DB + Edge Functions), React Query v5, Vitest; **(3) Architecture summary** — services in `src/services/` (`scanService.ts`, `tasteService.ts`), pages in `src/pages/`, Edge Functions in `supabase/functions/` (Deno runtime, excluded from TS compile); **(4) Design system** — dark wine-themed palette (`#121011` Warm Charcoal background, Playfair Display headings), full tokens in `design-style.md`; **(5) Important constraints** — API key model: server-side pooled key via Supabase secrets + per-user daily scan quota; admin-approval required for new user access; scan history stored in `scan_sessions` table; **(6) Dev commands** — `npm run dev`, `npm run build`, `npx vitest run`, `npx tsc --noEmit`, `npx eslint src/`; **(7) Branching** — feature branches from `main`, CI required to pass before merge.
+
+---
+
+### Updated Tier 2 — Moderate Effort (June 2, 2026)
+
+---
+
+#### 2.1 Verify and Complete Pooled API Key Model *(Status: Needs Verification Before Re-implementing)*
+
+**Description:** A Feb 7, 2026 commit ("feat: implement admin-controlled shared API key support") suggests this may already be implemented for some or all users. Before executing the May 31 agent prompt, verify the current state in both the Edge Functions (`analyze-wine`) and the frontend onboarding/settings flow. If the pooled key is already live for all authenticated users (not just admins), mark this item complete. If per-user `localStorage` key fallback is still present for regular users, complete the remaining transition using the May 31 agent prompt.
+
+See the May 31 entry for the full original agent prompt.
+
+**Estimated Effort:** 0.5 day (verification) + 3–4 days if still incomplete | **Expected Impact:** High adoption
+
+---
+
+#### 2.2 Preferences.tsx Modularization (23 KB) *(Carried Forward — Status: Open)*
+
+See the June 1 entry above for full description and agent prompt.
+
+**Estimated Effort:** 2 days | **Expected Impact:** Medium
+
+---
+
+#### 2.3 Scan History Export (CSV) *(Carried Forward — Status: Open)*
+
+See the May 31 entry above for full description and agent prompt.
+
+**Estimated Effort:** 1–2 days | **Expected Impact:** Medium
+
+---
+
+### Updated Tier 3 — Strategic (June 2, 2026)
+
+Carried forward unchanged — no new items:
+
+- **3.1 Wine Circles — Group Scanning** — see May 31 entry. **Effort:** XL | **Impact:** High long-term
+- **3.2 Restaurant Partnership Integration** — see May 31 entry. **Effort:** XL | **Impact:** Very high long-term
+- **3.3 Offline Cellar Browsing (PWA)** — see May 31 entry. **Effort:** S/M | **Impact:** Medium
