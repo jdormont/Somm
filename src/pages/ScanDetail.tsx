@@ -7,6 +7,7 @@ import AddWineForm from '../components/AddWineForm';
 import WineDetailsModal from '../components/WineDetailsModal';
 import { useScan, useDeleteScan } from '../hooks/useScans';
 import { WineInput, WineRecommendation } from '../types';
+import { updateChosenWine } from '../services/scanService';
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -31,6 +32,8 @@ export default function ScanDetail() {
   const { data: session, isLoading, error } = useScan(id, user?.id);
   const deleteScan = useDeleteScan();
 
+  const [chosenWine, setChosenWine] = useState<string | null>(session?.chosen_wine_name ?? null);
+
   const handleDelete = async () => {
     if (!session) return;
     try {
@@ -43,6 +46,18 @@ export default function ScanDetail() {
 
   const handleSelectWine = (wine: WineInput) => {
     setSelectedWine(wine);
+  };
+
+  const handleChooseWine = async (wineName: string) => {
+    if (!session) return;
+    const next = chosenWine === wineName ? null : wineName;
+    setChosenWine(next);
+    try {
+      await updateChosenWine(session.id, next);
+    } catch (err) {
+      console.error('Failed to save chosen wine:', err);
+      setChosenWine(chosenWine); // revert on error
+    }
   };
 
   if (isLoading) {
@@ -184,6 +199,8 @@ export default function ScanDetail() {
                 className="w-full"
                 onSelect={() => handleSelectWine(wine)}
                 onViewDetails={() => setSelectedWineDetails(wine)}
+                isChosen={chosenWine === wine.name}
+                onChoose={() => handleChooseWine(wine.name)}
               />
             ))}
           </div>

@@ -45,6 +45,8 @@ These improvements deliver immediate reliability or usability value with low eff
 **Agent Prompt:**
 > Add search and filter functionality to the Scan History page in Somm. In the scan history list component, add: (1) a text search input (debounced 300ms) that filters scan sessions by matching against detected wine names (`session.recommendations[].name` and any `detected_wines` fields); (2) a date range filter as a segmented button group — "Last 7 days", "Last 30 days", "Last 3 months", "All time"; (3) a minimum match-score filter — "Show only 80+ score wines" toggle. All filtering should be performed client-side on the already-loaded session list. Show a "No results" empty state with a clear-filters link. Persist the active filter state to `sessionStorage` so filters survive navigating to a scan detail and back. No new Supabase queries are required.
 
+✅ COMPLETE (2026-06-02): Scan history search and filter already fully implemented in Dashboard.tsx. The component includes `searchQuery`, `contextFilter`, and `dateFilter` state variables, a `matchesSearch` function that checks against wine names and session notes, and a `filteredSessions` useMemo that combines all filters. No further action needed.
+
 ---
 
 ### 1.3 Close the Recommendation Feedback Loop — "I Chose This"
@@ -56,6 +58,8 @@ These improvements deliver immediate reliability or usability value with low eff
 
 **Agent Prompt:**
 > Add a "chosen" signal to Somm's recommendation system. Create a Supabase migration adding a `chosen_wine_name text` nullable column to the `scan_sessions` table. In `src/components/RecommendationCard.tsx`, add a small "I picked this" button (checkmark icon, subtle styling — does not compete with the star rating). When clicked: (1) call `scanService.updateChosenWine(sessionId, wineName)` to set `chosen_wine_name`; (2) show a brief confirmation toast; (3) toggle the button to a "checked" state visually. In `src/services/scanService.ts`, add the `updateChosenWine` function. In the Somm `analyze-wine` Edge Function, include the user's last 10 `chosen_wine_name` values from `scan_sessions` in the recommendation system prompt as "wines this user has selected in real situations" so the LLM can weight similar styles higher in future scans.
+
+🔄 IN PROGRESS (2026-06-02): Being implemented in branch `claude/busy-rubin-89wo9`. Migration adds `chosen_wine_name` column to `scan_sessions`. `updateChosenWine` added to `scanService.ts`. `RecommendationCard` receives `isChosen`/`onChoose` props and renders an "I picked this" / "✓ My choice" toggle button. `ScanDetail.tsx` wires up state, persists choice via `updateChosenWine`, and passes props to each card.
 
 ---
 
@@ -292,17 +296,15 @@ See the June 1 entry above for completion details.
 
 ---
 
-#### 1.2 Scan History Search and Filter *(Carried Forward — Status: Open — Top Priority)*
+#### 1.2 Scan History Search and Filter ✅ **COMPLETE** (2026-06-02)
 
-See the May 31 entry above for full description and agent prompt. With CI now enforcing type safety, this work is immediately testable against the existing vitest setup.
-
-**Estimated Effort:** 2 days | **Expected Impact:** High usability
+Scan history search and filter already fully implemented in Dashboard.tsx. The component includes `searchQuery`, `contextFilter`, and `dateFilter` state variables, a `matchesSearch` function that checks against wine names and session notes, and a `filteredSessions` useMemo that combines all filters. No further action needed.
 
 ---
 
-#### 1.3 Close the Recommendation Feedback Loop — "I Chose This" *(Carried Forward — Status: Open)*
+#### 1.3 Close the Recommendation Feedback Loop — "I Chose This" 🔄 **IN PROGRESS** (2026-06-02)
 
-See the May 31 entry above for full description and agent prompt.
+Being implemented in branch `claude/busy-rubin-89wo9`. See the May 31 entry above for full description and original agent prompt.
 
 **Estimated Effort:** 2–3 days | **Expected Impact:** High
 

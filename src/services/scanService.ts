@@ -90,3 +90,12 @@ export const scanService = {
     return data;
   }
 };
+
+export async function updateChosenWine(sessionId: string, wineName: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('scan_sessions')
+    .update({ chosen_wine_name: wineName })
+    .eq('id', sessionId);
+
+  if (error) throw error;
+}

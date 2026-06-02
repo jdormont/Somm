@@ -10,6 +10,8 @@ interface RecommendationCardProps {
   onViewDetails?: () => void;
   className?: string;
   priceRange?: string; // e.g. "$$" or "$20-30"
+  isChosen?: boolean;
+  onChoose?: () => void;
 }
 
 export default function RecommendationCard({
@@ -22,6 +24,8 @@ export default function RecommendationCard({
   onViewDetails,
   className = "",
   priceRange,
+  isChosen,
+  onChoose,
 }: RecommendationCardProps) {
   return (
     <div className={`group relative overflow-hidden rounded-2xl bg-wine-slate-900/80 backdrop-blur-md border border-champagne-400/20 transition-all duration-500 hover:border-champagne-400/40 hover:shadow-lg hover:shadow-champagne-400/10 ${className}`}>
@@ -85,6 +89,19 @@ export default function RecommendationCard({
             <ArrowRight className="w-4 h-4 ml-0.5" />
           </button>
         </div>
+
+        {onChoose && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onChoose(); }}
+            className={`mt-2 w-full text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              isChosen
+                ? 'bg-green-700 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            {isChosen ? '✓ My choice' : 'I picked this'}
+          </button>
+        )}
       </div>
     </div>
   );
