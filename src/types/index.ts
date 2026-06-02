@@ -43,6 +43,7 @@ export interface ScanSession {
   wines_detected: WineDetected[];
   recommendations: WineRecommendation[];
   summary: string;
+  chosen_wine_name?: string | null;
   debug_info?: {
     allWinesFound: WineDebugInfo[];
     researchedWines: WineDebugInfo[];
