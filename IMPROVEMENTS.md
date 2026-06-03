@@ -1,366 +1,103 @@
-# Improvements Assessment — Somm
-
-*Assessment Date: May 31, 2026*
-
----
-
-## Assessment Methodology
-
-This assessment reviewed the PRD (Phases 1–5), recent commit history (last active: March 2026), component structure, service layer architecture, and open items across all planned phases. Since Somm is a more focused, single-purpose app (wine scanning and recommendation), improvements were evaluated against the core product loop: **scan → recommend → rate → improve**. No formal risk or architecture review document currently exists for Somm, so technical findings were inferred from code structure, PRD constraints, and cross-app pattern comparisons.
-
-**Key signals reviewed:**
-- PRD phases: Phases 1 & 2 complete; Phase 3 (discovery/history), 4 (social), 5 (platform) planned
-- Recent commits: React Query for preferences caching, fuzzy wine name matching, redundant DB query reduction (March 2026)
-- Earlier commits: simplified onboarding, spectrum taste preferences, improved budget adherence (Feb 2026)
-- Component inventory: lean structure (13 components), services layer present (`scanService.ts`, `tasteService.ts`), `__tests__` directory exists
-- PRD constraints: user-provided OpenAI key in localStorage, no CI/CD, scan cost-gating via admin approval
-
----
-
-## Tier 1 — High-Impact, Quick Wins
-
-These improvements deliver immediate reliability or usability value with low effort.
-
----
-
-### 1.1 React Error Boundaries
-
-**Description:** Somm has no `<ErrorBoundary>` components. If any component throws an unhandled render error — such as a malformed AI recommendation payload, a Supabase timeout during a scan, or an unexpected JSON structure from the vision model — the entire app crashes to a white screen with no recovery path. This is especially problematic given that the scanner is used in real-time in restaurants and stores where users need to recover quickly. A single well-placed `ErrorBoundary` is a one-day fix with significant reliability upside.
-
-**Estimated Effort:** 1 day  
-**Expected Impact:** High reliability — eliminates white-screen-of-death scenarios in core user flows; builds trust during the most stressful in-context usage (standing in a wine aisle or at a restaurant).
-
-**Agent Prompt:**
-> Add React Error Boundaries to Somm. Create `src/components/ErrorBoundary.tsx` as a React class component implementing `componentDidCatch(error, errorInfo)` (log both) and `getDerivedStateFromError()`. Render a fallback UI matching the app's dark wine-themed style: a centered card with a wine glass icon, "Something went wrong" heading, a short reassuring message, and a "Try again" button that calls `window.location.reload()`. In `src/App.tsx`, wrap: (1) the entire router output in a top-level `<ErrorBoundary>`; (2) the WineScanner-related page specifically in its own `<ErrorBoundary fallback={...}>` with message "Scanner encountered an error — your cellar history is safe." Test by temporarily throwing in a component to confirm the boundary catches it and the fallback renders.
-
----
-
-### 1.2 Scan History Search and Filter
-
-**Description:** Users who have made 20+ scans have no way to quickly find a past scan by restaurant name, detected wine, date, or star rating. This is especially frustrating because the cellar history is meant to feed into future recommendations — users want to reference and validate past scans. The PRD identifies scan history search and filtering as the top Phase 3 priority. This is entirely client-side filtering on already-fetched session data and requires no backend changes.
-
-**Estimated Effort:** 2 days  
-**Expected Impact:** High usability — directly serves returning users (the highest-value segment); closes the most obvious navigation gap for active app users.
-
-**Agent Prompt:**
-> Add search and filter functionality to the Scan History page in Somm. In the scan history list component, add: (1) a text search input (debounced 300ms) that filters scan sessions by matching against detected wine names (`session.recommendations[].name` and any `detected_wines` fields); (2) a date range filter as a segmented button group — "Last 7 days", "Last 30 days", "Last 3 months", "All time"; (3) a minimum match-score filter — "Show only 80+ score wines" toggle. All filtering should be performed client-side on the already-loaded session list. Show a "No results" empty state with a clear-filters link. Persist the active filter state to `sessionStorage` so filters survive navigating to a scan detail and back. No new Supabase queries are required.
-
-✅ COMPLETE (2026-06-02): Scan history search and filter already fully implemented in Dashboard.tsx. The component includes `searchQuery`, `contextFilter`, and `dateFilter` state variables, a `matchesSearch` function that checks against wine names and session notes, and a `filteredSessions` useMemo that combines all filters. No further action needed.
-
----
-
-### 1.3 Close the Recommendation Feedback Loop — "I Chose This"
-
-**Description:** The PRD's primary success metric is >60% of scans resulting in a saved wine. But there is currently no signal capturing *which* recommended wine the user actually selected and purchased. Without this, the AI cannot learn which wines in a given list users actually choose, and the ranking algorithm cannot improve over time. Adding a lightweight "I chose this" button on each recommendation card — separate from the 5-star cellar rating — closes the feedback loop and creates the data foundation for smarter future recommendations.
-
-**Estimated Effort:** 2–3 days  
-**Expected Impact:** High — directly addresses the #1 PRD success metric; creates a data flywheel for improving recommendation quality; differentiates Somm from tools that only scan, not learn.
-
-**Agent Prompt:**
-> Add a "chosen" signal to Somm's recommendation system. Create a Supabase migration adding a `chosen_wine_name text` nullable column to the `scan_sessions` table. In `src/components/RecommendationCard.tsx`, add a small "I picked this" button (checkmark icon, subtle styling — does not compete with the star rating). When clicked: (1) call `scanService.updateChosenWine(sessionId, wineName)` to set `chosen_wine_name`; (2) show a brief confirmation toast; (3) toggle the button to a "checked" state visually. In `src/services/scanService.ts`, add the `updateChosenWine` function. In the Somm `analyze-wine` Edge Function, include the user's last 10 `chosen_wine_name` values from `scan_sessions` in the recommendation system prompt as "wines this user has selected in real situations" so the LLM can weight similar styles higher in future scans.
-
-🔄 IN PROGRESS (2026-06-02): Being implemented in branch `claude/busy-rubin-89wo9`. Migration adds `chosen_wine_name` column to `scan_sessions`. `updateChosenWine` added to `scanService.ts`. `RecommendationCard` receives `isChosen`/`onChoose` props and renders an "I picked this" / "✓ My choice" toggle button. `ScanDetail.tsx` wires up state, persists choice via `updateChosenWine`, and passes props to each card.
-
----
-
-## Tier 2 — Medium-Impact, Moderate Effort
-
-These improvements materially grow the user base or close significant product gaps.
-
----
-
-### 2.1 Shared/Pooled API Key Model
-
-**Description:** Somm currently requires each user to provide their own OpenAI API key, stored in the browser's `localStorage`. This is a significant onboarding barrier — most users do not have or want to manage an API key. The PRD explicitly notes "a pooled key model may be needed for broader adoption." The Supabase Edge Function infrastructure is already in place; moving to a server-side pooled key removes the friction, enables usage tracking per user, and aligns with the existing admin-approval cost-control model.
-
-**Estimated Effort:** 3–4 days  
-**Expected Impact:** High adoption — removes the single largest onboarding barrier; unlocks user growth beyond the developer/technical audience; per-user scan limits replace the API key as the cost-control mechanism.
-
-**Agent Prompt:**
-> Remove the user-provided OpenAI API key requirement from Somm. Store a pooled `OPENAI_API_KEY` as a Supabase secret (`supabase secrets set OPENAI_API_KEY=...`). Update all Edge Functions that currently read the key from the request body (`analyze-wine` and any others) to instead read `Deno.env.get('OPENAI_API_KEY')`. In the frontend, remove the API key input from `src/components/OnboardingModal.tsx` and any settings section where it currently appears. Remove all `localStorage` reads and writes for the API key. Add a cost-control mechanism: create a `daily_scan_counts(user_id uuid, scan_date date, count int)` table with a unique constraint on `(user_id, scan_date)`. In the `analyze-wine` Edge Function, check and increment this counter; return HTTP 429 with a clear user message when the daily limit (e.g., 10 scans) is reached. Show the remaining scan count in the Scanner UI.
-
----
-
-### 2.2 Scan History Export (CSV)
-
-**Description:** The PRD lists exporting scan history as a Phase 3 planned feature. Wine enthusiasts using Somm as a personal wine journal want to extract their history for personal records, wine club meetings, or import into another tool. CSV export is implementable entirely client-side from already-fetched session data — no backend changes required. This is a low-risk, high-satisfaction feature for the most engaged users.
-
-**Estimated Effort:** 1–2 days  
-**Expected Impact:** Medium — satisfies power users and wine club use cases; increases perceived data ownership and trust; straightforward to implement.
-
-**Agent Prompt:**
-> Add scan history CSV export to Somm. Create `src/utils/exportHistory.ts` with an `exportToCsv(sessions: ScanSession[]): void` function that converts scan sessions into CSV rows with columns: Date, Context (Store/Restaurant), Notes, Wine Name, Producer, Vintage, Type, Region, Match Score, My Rating (stars), Tasting Notes (from cellar entry if linked). Generate the CSV string and trigger a browser download using `URL.createObjectURL(new Blob([csvString], { type: 'text/csv;charset=utf-8;' }))`. Set the download filename to `somm-scan-history-YYYY-MM-DD.csv`. Add an "Export CSV" button to the scan history page header (use a download icon). If no sessions are present, disable the button with a tooltip. Ensure exported data includes only the current user's records (already enforced by RLS, but verify the client query has the correct `user_id` filter).
-
----
-
-### 2.3 CI/CD Pipeline with GitHub Actions
-
-**Description:** Somm has no automated CI pipeline. TypeScript type checking, ESLint, and tests (the `src/components/__tests__` directory exists with `vitest.config.ts`) only run if a developer manually triggers them. This means type errors and regressions can land in `main` undetected. Adding a minimal GitHub Actions workflow ensures code quality is enforced on every push, taking less than a day to set up.
-
-**Estimated Effort:** 1 day  
-**Expected Impact:** Medium ongoing — prevents regressions; enforces code quality standards automatically; low effort for high ongoing value.
-
-**Agent Prompt:**
-> Create `.github/workflows/ci.yml` for the Somm repository. The workflow should trigger on `push` to `main` and any `claude/**` branches, and on `pull_request` targeting `main`. Define three parallel jobs: (1) **Lint** — `npm ci` + `npx eslint src/`; (2) **Type Check** — `npm ci` + `npx tsc --noEmit`; (3) **Test** — `npm ci` + `npx vitest run --reporter=verbose`. Use `actions/setup-node@v4` with Node 20 and `actions/cache@v4` for the `node_modules` cache key based on `package-lock.json`. Add placeholder environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` with dummy values so the Vite build does not fail on missing secrets. Verify the workflow passes on the first run by checking that `supabase/` edge functions are excluded from the TypeScript compilation scope (check `tsconfig.app.json` includes/excludes).
-
----
-
-## Tier 3 — Strategic, Longer-Term
-
-These improvements define Somm's long-term differentiation and market positioning.
-
----
-
-### 3.1 Wine Circles — Group Scanning
-
-**Description:** The PRD's Phase 4 vision for Wine Circles is uniquely differentiated: one person photographs a wine list and all group members simultaneously receive personalized recommendations tailored to their individual taste profiles from the same list. No major wine app offers this mechanic. It transforms Somm from a solo tool into a dinner-party and wine-club companion — a natural sharing moment that drives group adoption and organic referrals.
-
-**Estimated Effort:** 3–4 weeks  
-**Expected Impact:** High long-term — unique social mechanic driving group adoption; increases scans-per-event (multiple users, one list); creates natural referral loops and viral acquisition.
-
-**Agent Prompt:**
-> Design and implement Wine Circles Phase 1 for Somm (group creation and shared scanning). Create Supabase tables: `wine_circles(id uuid, name text, created_by uuid, invite_code text unique, created_at timestamptz)` and `circle_members(circle_id uuid, user_id uuid, joined_at timestamptz)`. Create a `/circles` page with: (1) "Create Circle" form generating a unique 6-character alphanumeric invite code; (2) "Join Circle" form accepting an invite code; (3) list of the current user's circles with member count and a share-code button. When a scan is completed, add a "Share with Circle" option that inserts a `shared_scans(scan_session_id, circle_id, shared_by uuid, shared_at timestamptz)` record. Circle members can then view shared scans from their own session history with a "Shared by [name]" badge, and each member sees personalized recommendations computed from their own taste profile against the shared wine list. Do not implement real-time in this phase — sharing is asynchronous.
-
----
-
-### 3.2 Restaurant Partnership Integration
-
-**Description:** Phase 5 envisions restaurants opting into a pre-loaded wine list accessible via QR code at the table, eliminating the need for users to photograph a menu. This transforms Somm from a reactive scanning tool to a proactive restaurant companion — and creates a unique B2B2C business model where restaurants gain anonymized palate preference data while users get instant, frictionless recommendations.
-
-**Estimated Effort:** 6–10 weeks (including partnership process)  
-**Expected Impact:** Very high long-term — unlocks a B2B revenue stream; dramatically reduces scan friction in the most common use context; creates a defensible data and distribution moat.
-
-**Agent Prompt:**
-> Design the technical foundation for Somm Restaurant Integration (Phase 5 building block). Create Supabase tables: `restaurants(id uuid, name text, address text, cuisine_type text, qr_code_token text unique, is_active boolean)` and `restaurant_wine_lists(id uuid, restaurant_id uuid, wine_name text, producer text, vintage int, price numeric, type text, region text, updated_at timestamptz)`. Create a public (unauthenticated) Supabase Edge Function `get-restaurant-list` that accepts a `?token=` query param and returns the active wine list for that restaurant — no OpenAI call, just data. In the Somm app, add a URL route handler for `/r/:token` that loads a restaurant's pre-populated wine list directly into the `analyze-wine` flow without requiring the camera. Create a minimal restaurant admin portal at `/admin/restaurant` (gated behind an `is_restaurant_admin` boolean on `user_profiles`) where wine lists can be uploaded via CSV paste or a manual add-wine form.
-
----
-
-### 3.3 Offline Cellar Browsing (PWA)
-
-**Description:** The PRD notes "cellar browsing could work offline in a future PWA version." Wine cellar data is the one part of the app that requires no real-time internet access — users frequently want to review their past wines at a restaurant table when connectivity is poor. A service worker that caches the cellar data on last successful fetch requires minimal complexity and resolves a genuine real-world friction point.
-
-**Estimated Effort:** 3–5 days  
-**Expected Impact:** Medium — solves a genuine connectivity problem in the core use context (restaurants, wine shops, cellars); improves the app-like feel on mobile; enables the cellar to remain useful in low-signal environments.
-
-**Agent Prompt:**
-> Add PWA offline support for cellar browsing to Somm. Install `vite-plugin-pwa` and configure it in `vite.config.ts` with the `generateSW` strategy. Create `public/manifest.json` with app name "Somm", a wine glass icon, and theme colors matching the app's deep burgundy/slate palette. Configure Workbox to: (1) cache all JS/CSS/font assets with `CacheFirst`; (2) cache Supabase API responses for `wine_memories` (the cellar table) with `NetworkFirst` with a 30-minute TTL, falling back to the cached version when offline; (3) show a minimal `public/offline.html` fallback for all other routes that explains scanning requires internet but the cellar is available offline. Test with Chrome DevTools "Offline" mode to confirm the `/cellar` route loads wine entries without a network connection after a prior online visit. Do not attempt to make the scanner or recommendation engine work offline.
-
----
-
-## Reassessment — June 1, 2026
-
-*Assessment Date: June 1, 2026*
-
----
-
-### Progress Since May 31 Assessment
+# Improvements
+_Last assessment: 2026-06-03_
+_Last knowledge sync: 2026-06-03_
+_Assessment based on: full review of 30 most recent commits, all 5 closed PRs, complete IMPROVEMENTS.md history, key source files (ScanDetail.tsx, Scanner.tsx, Settings.tsx, Cellar.tsx, Dashboard.tsx, Preferences.tsx, useScannerLogic.ts, analyze-wine edge function), and migration history._
+
+## Current Sprint
+None — ready for next implementation run
+
+## Recently Completed ✓
 
 | Item | Status | Notes |
 |------|--------|-------|
-| React Error Boundaries (Tier 1.1) | ✅ Completed | Direct commit — June 1, 2026 |
-| CI/CD Pipeline (Tier 1.4) | ✅ Completed | Branch `claude/busy-rubin-BslBA` — June 1, 2026 |
-
-**Remaining open items from previous assessment:** Scan History Search (1.2), "I Chose This" feedback loop (1.3), Pooled API Key (2.1), CSV Export (2.2), Wine Circles (3.1), Restaurant Integration (3.2), Offline PWA (3.3).
-
-**New findings from current codebase review (June 1, 2026):**
-- `src/pages/Preferences.tsx` is **23,654 bytes** — the largest page component, managing taste spectrum sliders, varietal toggles, budget ranges, and food pairing in a single scrolling form.
-- `src/pages/Scanner.tsx` (20,097 bytes) and `src/pages/ScanDetail.tsx` (15,631 bytes) are the core user-facing flow with no observed test coverage.
-- Somm remains the only app in this portfolio with no CI/CD pipeline — type errors can land on `main` undetected during active development.
-- No `CLAUDE.md` exists, leaving future AI-assisted sessions without project context.
+| React Error Boundaries (was Tier 1.1) | [DONE — merged: 2026-06-01, PR: #3] | `ErrorBoundary.tsx` + scanner-specific fallback UI |
+| CI/CD Pipeline (was Tier 1.4) | [DONE — merged: 2026-06-01, PR: #3] | `.github/workflows/ci.yml` — lint, typecheck, vitest in parallel |
+| Scan History Search and Filter (was Tier 1.2) | [DONE — merged: 2026-06-02, PR: #5] | `Dashboard.tsx` — search, context filter, date range filter |
+| "I Chose This" feedback button (was Tier 1.3) | [DONE — merged: 2026-06-02, PR: #5] | `RecommendationCard` toggle, `scan_sessions.chosen_wine_name` migration, `scanService.updateChosenWine` |
 
 ---
 
-### Updated Tier 1 — High-Impact, Quick Wins
+## Tier 1 — Quick Wins
+
+### Fix chosenWine stale initialization in ScanDetail — [OPEN]
+- **What:** `ScanDetail.tsx` initializes `chosenWine` state with `useState(session?.chosen_wine_name ?? null)`, but `session` is `undefined` on the first render (React Query loads async). No `useEffect` syncs the state after the session resolves, so the "I Chose This" toggle always renders unchosen when a user navigates directly to a scan URL — even if they previously made a choice. The fix is a one-line `useEffect(() => { setChosenWine(session?.chosen_wine_name ?? null); }, [session?.chosen_wine_name])`.
+- **Why now:** The "I Chose This" feature shipped in PR #5 but is silently broken for the most important case (returning to a past scan). This is a correctness regression in last sprint's work and should be the first thing patched.
+- **Effort estimate:** S
+- **Actual effort:** —
+- **Agent prompt:** "In `src/pages/ScanDetail.tsx`, the `chosenWine` state is initialized from `session?.chosen_wine_name` before React Query has resolved the session. Add a `useEffect` that calls `setChosenWine(session?.chosen_wine_name ?? null)` whenever `session?.chosen_wine_name` changes: `useEffect(() => { setChosenWine(session?.chosen_wine_name ?? null); }, [session?.chosen_wine_name]);`. Import `useEffect` from React. Verify: navigate directly to a `/scans/:id` URL for a scan where you previously tapped 'I picked this' — the button should render in the chosen state on page load."
+
+### Close the "I Chose This" feedback loop in the edge function — [OPEN]
+- **What:** The `chosen_wine_name` column was added to `scan_sessions` and the UI captures the user's choice, but the `analyze-wine` Supabase Edge Function does not query or use this data. The PRD's stated goal was to feed chosen wines back into future recommendations as a learning signal. Right now the data flywheel is only half-built: data is collected but never acted on.
+- **Why now:** The choice data is being written but immediately discarded from the recommendation loop. Each new scan could be personalized using actual purchase behavior — this is a high-leverage AI quality improvement that requires only ~15 lines added to the edge function's system prompt builder.
+- **Effort estimate:** S
+- **Actual effort:** —
+- **Agent prompt:** "In `supabase/functions/analyze-wine/index.ts`, after the user's `wine_memories` are resolved (around line 229), query `scan_sessions` using the admin Supabase client for the authenticated user's last 15 records where `chosen_wine_name IS NOT NULL`, ordered by `created_at DESC`. Add a new `buildChosenWineSignal(chosenWines: string[]): string` helper function (similar to `buildUserProfile`) that returns a `[CHOSEN_WINE_HISTORY]` block listing the wine names the user has actually selected in real situations. Inject this block into the system prompt between `[USER_PROFILE]` and `[CURRENT_CONSTRAINTS]`. The LLM instruction should read: 'These are wines this user actually chose and purchased — weight recommendations that share similar style, region, or variety more heavily.' Run `supabase functions deploy analyze-wine` after the change."
+
+### Add CLAUDE.md project context file — [OPEN]
+- **What:** The Somm repo still has no `CLAUDE.md`. Every AI-assisted development session starts cold with no knowledge of the stack, design system, admin-approval flow, API key model, or branching conventions. This has been noted in each of the past three assessments (June 1, June 2, June 3) without action.
+- **Why now:** Three consecutive assessments without movement makes this a staleness risk. As a 30-minute task it has the best effort-to-session-productivity ratio of anything in the backlog.
+- **Effort estimate:** S
+- **Actual effort:** —
+- **Agent prompt:** "Create `CLAUDE.md` at the root of the Somm repository. Include: (1) **Project overview** — 'Somm is a React + TypeScript + Supabase + Vite SPA. Users photograph wine lists with their phone camera and receive AI-powered recommendations based on their individual taste profile.'; (2) **Commands** — `npm run dev` (Vite dev server), `npm run build`, `npx vitest run`, `npx tsc --noEmit`, `npx eslint src/`; (3) **Tech stack** — Vite, React 18, TypeScript strict, Tailwind CSS, Supabase (Auth + Postgres + Edge Functions), React Query v5, Vitest + Testing Library; (4) **Architecture** — services in `src/services/` (`scanService.ts`, `tasteService.ts`), pages in `src/pages/`, Edge Functions in `supabase/functions/` (Deno runtime, excluded from `tsconfig.app.json` compilation scope); (5) **API key model** — the `use_shared_key` boolean on `user_profiles` determines whether a user is served via the pooled `OPENAI_API_KEY` Supabase secret or must supply their own key via `localStorage`; (6) **Design system** — dark wine-themed palette (Warm Charcoal `#121011` background, Playfair Display headings, `champagne-*` / `somm-red-*` / `wine-slate-*` color tokens), full tokens in `design-style.md`; (7) **Key constraints** — admin approval required for new user access (`user_profiles.status`); `chosen_wine_name` on `scan_sessions` tracks actual purchase decisions for future recommendation learning; (8) **Branching** — CI (lint + typecheck + vitest) must pass before merge to `main`."
+
+### Cellar text search — [OPEN]
+- **What:** `Cellar.tsx` offers only a 1–5 star rating filter. A user with 50+ cellar entries has no way to find a specific wine by name, producer, or region. The cellar is pitched as a personal wine journal, but without text search it degrades from a reference tool to a scrollable list. All data is already client-side — no backend changes needed.
+- **Why now:** The scan history Dashboard received search in PR #5. The Cellar page is the other primary browsing surface and has the same gap. Parallel treatment brings UX consistency.
+- **Effort estimate:** S
+- **Actual effort:** —
+- **Agent prompt:** "In `src/pages/Cellar.tsx`, add a text search input above the star-rating filter row. Add a `searchQuery` state variable (`useState('')`). Modify the `filtered` derivation to also filter by `searchQuery`: match against `memory.name`, `memory.producer`, and `memory.region` (all case-insensitive). Add a debounced input (300ms, or use a simple controlled input — no library needed). Use the same input styling as `Dashboard.tsx` for visual consistency (dark glass-morphism card with placeholder 'Search by name, producer, or region…'). Show a 'No results' empty state with a clear-search button when filtered is empty but memories is not. No Supabase queries needed — all data is already in local state."
 
 ---
 
-#### 1.1 React Error Boundaries ✅ **COMPLETED** (June 1, 2026)
+## Tier 2 — Next Sprint
 
-`src/components/ErrorBoundary.tsx` implemented with dark wine-themed fallback UI. Scanner page wrapped in its own boundary with "cellar history is safe" messaging. No further action needed.
+### Complete the pooled API key migration — [OPEN]
+- **What:** The `analyze-wine` edge function correctly falls back to `Deno.env.get('OPENAI_API_KEY')` for users where `use_shared_key = true` on their profile. However, the Settings page still shows a prominent API key input with a warning banner ("Your key is stored locally") for all users, regardless of whether they have shared-key access. New users who are approved but not granted `use_shared_key = true` still face the per-user API key barrier. The pooled model is implemented at the infrastructure level but not surfaced in the UX, and there is no daily scan quota enforced when the shared key is used.
+- **Why now:** This is the single largest remaining onboarding friction point. Every non-technical user who signs up hits a dead end unless an admin manually toggles their `use_shared_key` flag. The edge function guard is already there — the gaps are the Settings page UI and quota enforcement.
+- **Effort estimate:** M
+- **Actual effort:** —
+- **Agent prompt:** "In Somm, complete the pooled API key UX in three parts: (1) In `src/pages/Settings.tsx`, check `profile?.use_shared_key` (from `useAuth`). If true, replace the API key input section with a read-only card: 'You are using Somm's shared scanning service — no API key required.' styled with the existing champagne/green success palette. If false, keep the existing input but update the help text to note that the API key requirement may be removed in future. (2) In `src/pages/Dashboard.tsx`, update the setup-warning logic so `hasApiKey` is `true` when `profile?.use_shared_key` is true — the warning banner currently checks `localStorage` OR `use_shared_key`, which is correct, but verify this renders correctly on first login for shared-key users. (3) In `supabase/functions/analyze-wine/index.ts`, after confirming `useSharedKey = true`, enforce a daily scan quota: upsert a row in a new `daily_scan_counts(user_id uuid, scan_date date, count int, primary key(user_id, scan_date))` table, incrementing `count`. If `count > 10`, return HTTP 429 with JSON `{ error: 'Daily scan limit reached. Resets at midnight UTC.' }`. Create the migration for `daily_scan_counts` with an appropriate RLS policy (users can read their own count; service role writes)."
 
----
+### Preferences.tsx modularization (23 KB) — [OPEN]
+- **What:** `src/pages/Preferences.tsx` at 23,654 bytes manages four distinct user preference domains — taste spectrum sliders, grape varietal toggles, budget range settings, and food pairing preferences — in a single scrolling form. These sections have distinct data shapes, mutation paths, and interaction patterns. Splitting them into focused sub-components reduces cognitive load for future taste-profile enhancements and enables per-section unit testing. `PreferencesRefactor.test.tsx` already exists in `src/pages/__tests__/` suggesting this work was anticipated.
+- **Why now:** This is the most-edited settings component; any future change to taste preferences (adding a new dimension, varietal category, or pairing type) touches this entire file. Modularizing before the next taste-profile feature is added prevents compounding complexity.
+- **Effort estimate:** M
+- **Actual effort:** —
+- **Agent prompt:** "Refactor `src/pages/Preferences.tsx` in Somm without changing any visible behavior or styling. Extract: (1) `src/components/preferences/TasteSpectrumSection.tsx` — the spectrum sliders (body, sweetness, tannins, acidity, earthiness); (2) `src/components/preferences/VarietalTogglesSection.tsx` — grape varietal include/exclude toggles; (3) `src/components/preferences/BudgetRangeSection.tsx` — per-context (restaurant/store) budget min/max inputs; (4) `src/components/preferences/FoodPairingSection.tsx` — food type preference toggles. Each component should accept the relevant slice of the preferences object as props and call an `onChange(partial)` callback. `Preferences.tsx` should become a thin orchestrator under 200 lines. Run `npx vitest run` and `npx tsc --noEmit` to confirm no regressions."
 
-#### 1.2 Scan History Search and Filter *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 2 days | **Expected Impact:** High usability
-
----
-
-#### 1.3 Close the Recommendation Feedback Loop — "I Chose This" *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 2–3 days | **Expected Impact:** High
-
----
-
-#### 1.4 CI/CD Pipeline with GitHub Actions ✅ **COMPLETED** (June 1, 2026)
-
-`.github/workflows/ci.yml` created with three parallel jobs: **Lint** (`npx eslint src/`), **Type Check** (`npx tsc --noEmit`), and **Test** (`npx vitest run --reporter=verbose`). Triggers on push to `main` and any `claude/**` branch, and on PRs targeting `main`. Node 20 with `npm ci` caching on `package-lock.json` hash. Placeholder `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` env vars prevent Vite type resolution failures in CI. The `supabase/` directory is excluded from TypeScript compilation scope by `tsconfig.app.json` (`"include": ["src"]` only).
+### Scan history CSV export — [OPEN]
+- **What:** Wine enthusiasts using Somm as a personal wine journal want to extract their history for personal records, wine club meetings, or import into another tool. CSV export is implementable entirely client-side from already-fetched session data — no backend changes required. This is a low-risk, high-satisfaction feature for the most engaged users.
+- **Why now:** Carried from prior assessments; remains the most-requested type of feature for power users. Relatively contained implementation — a good candidate for a standalone PR.
+- **Effort estimate:** S
+- **Actual effort:** —
+- **Agent prompt:** "Add scan history CSV export to Somm. Create `src/utils/exportHistory.ts` with an `exportToCsv(sessions: ScanSession[]): void` function that converts scan sessions into CSV rows with columns: Date, Context, Notes, Wine Name, Producer, Vintage, Type, Region, Match Score, Chosen (yes/no from `chosen_wine_name`). Generate the CSV string and trigger a download using `URL.createObjectURL(new Blob([csvString], { type: 'text/csv;charset=utf-8;' }))`. Set filename to `somm-scan-history-YYYY-MM-DD.csv`. Add an 'Export CSV' button (download icon, `lucide-react`) to the scan history page header in `Dashboard.tsx`. Disable with tooltip when no sessions exist."
 
 ---
 
-### Updated Tier 2 — Medium-Impact, Moderate Effort
+## Tier 3 — Strategic
+
+### Wine Circles — Group Scanning — [OPEN]
+- **What:** The PRD's Phase 4 vision: one person photographs a wine list and all group members simultaneously receive personalized recommendations tailored to their individual taste profiles from the same list. No major wine app offers this mechanic. Transforms Somm from a solo tool into a dinner-party and wine-club companion.
+- **Why now:** Foundational differentiator for growth beyond solo users; natural referral mechanic. Scope is well-defined in PRD Phase 4 — implementation involves new DB tables, a circles UI, and a shared-scan view.
+- **Effort estimate:** L
+- **Actual effort:** —
+- **Agent prompt:** "Design and implement Wine Circles Phase 1 for Somm. Create Supabase tables: `wine_circles(id uuid, name text, created_by uuid, invite_code text unique, created_at timestamptz)` and `circle_members(circle_id uuid, user_id uuid, joined_at timestamptz)`. Create a `/circles` page with: (1) 'Create Circle' form generating a unique 6-character alphanumeric invite code; (2) 'Join Circle' form accepting an invite code; (3) list of the current user's circles with member count and share-code button. When a scan completes, add a 'Share with Circle' option that inserts a `shared_scans(scan_session_id, circle_id, shared_by uuid, shared_at timestamptz)` record. Circle members can view shared scans with a 'Shared by [name]' badge. Do not implement real-time in this phase — sharing is asynchronous."
+
+### Restaurant Partnership Integration — [OPEN]
+- **What:** Phase 5 of the PRD: restaurants opt into a pre-loaded wine list accessible via QR code, eliminating the need to photograph a menu. Creates a B2B2C model where restaurants gain anonymized palate preference data.
+- **Why now:** Highest long-term impact item in the backlog. Foundational tables and a public edge function are the building blocks needed before any partnership outreach.
+- **Effort estimate:** L
+- **Actual effort:** —
+- **Agent prompt:** "Create the technical foundation for Somm Restaurant Integration. Create Supabase tables: `restaurants(id uuid, name text, address text, qr_code_token text unique, is_active boolean)` and `restaurant_wine_lists(id uuid, restaurant_id uuid, wine_name text, producer text, vintage int, price numeric, type text, region text, updated_at timestamptz)`. Create a public unauthenticated Edge Function `get-restaurant-list` accepting `?token=` and returning the wine list. In the app, handle `/r/:token` routes to load a restaurant's pre-populated wine list into the `analyze-wine` flow. Create a minimal restaurant admin portal at `/admin/restaurant` gated by `is_restaurant_admin` on `user_profiles`."
+
+### Offline Cellar Browsing (PWA) — [OPEN]
+- **What:** Cellar data requires no real-time internet — users frequently want to review past wines at a restaurant table in low-signal environments. A service worker that caches cellar data on last successful fetch resolves a genuine in-context friction point.
+- **Why now:** Consistently identified as medium impact across prior assessments. Good candidate for a focused sprint when mobile UX improvements are prioritized.
+- **Effort estimate:** M
+- **Actual effort:** —
+- **Agent prompt:** "Add PWA offline support for cellar browsing. Install `vite-plugin-pwa` and configure it in `vite.config.ts` with the `generateSW` strategy. Configure Workbox to: (1) cache JS/CSS/font assets with `CacheFirst`; (2) cache Supabase `wine_memories` responses with `NetworkFirst` + 30-minute TTL; (3) show `public/offline.html` for all other offline routes explaining scanning requires internet but the cellar is available offline. Test with Chrome DevTools 'Offline' mode on the `/cellar` route."
 
 ---
 
-#### 2.1 Shared/Pooled API Key Model *(Carried Forward — Elevated Priority)*
-
-See the May 31 entry above for full description and agent prompt. With error boundaries protecting the scanner, removing the per-user API key barrier is now the highest-impact growth unlock remaining in Tier 2.
-
-**Estimated Effort:** 3–4 days | **Expected Impact:** High adoption
-
----
-
-#### 2.2 Preferences.tsx Modularization (23 KB)
-
-**Description:** `src/pages/Preferences.tsx` at 23,654 bytes manages four distinct user preference domains — taste spectrum sliders, grape varietal toggles, budget range settings, and food pairing preferences — in a single scrolling form component. These sections have distinct data shapes, mutation paths, and interaction patterns. Splitting them into focused sub-components reduces cognitive load for future taste-profile enhancements (e.g., adding a new preference dimension or varietal category) and enables per-section unit testing.
-
-**Estimated Effort:** 2 days  
-**Expected Impact:** Medium — reduces complexity of the most-edited settings component; makes future taste-profile enhancements faster to implement; enables per-section testing.
-
-**Agent Prompt:**
-> Refactor `src/pages/Preferences.tsx` in Somm without changing any visible behavior or styling. Extract: (1) `src/components/preferences/TasteSpectrumSection.tsx` — the spectrum sliders (bold↔delicate, dry↔sweet, etc.); (2) `src/components/preferences/VarietalTogglesSection.tsx` — grape varietal include/exclude toggles; (3) `src/components/preferences/BudgetRangeSection.tsx` — per-context (restaurant/store) budget min/max inputs; (4) `src/components/preferences/FoodPairingSection.tsx` — food type preference toggles. Each component should accept the relevant slice of the preferences object as props and call an `onChange(partial)` callback. `Preferences.tsx` should become a thin orchestrator under 200 lines. Run `npx vitest run` and `npx tsc --noEmit` to confirm no regressions.
-
----
-
-#### 2.3 Scan History Export (CSV) *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 1–2 days | **Expected Impact:** Medium
-
----
-
-### Updated Tier 3 — Strategic, Longer-Term
-
----
-
-#### 3.1 Wine Circles — Group Scanning *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 3–4 weeks | **Expected Impact:** High long-term
-
----
-
-#### 3.2 Restaurant Partnership Integration *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 6–10 weeks | **Expected Impact:** Very high long-term
-
----
-
-#### 3.3 Offline Cellar Browsing (PWA) *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 3–5 days | **Expected Impact:** Medium
-
----
-
-## Reassessment — June 2, 2026
-
-*Assessment Date: June 2, 2026*
-*Assessment based on: full review of 30 most recent commits, repo file listing, IMPROVEMENTS.md history, and complete commit-level diff analysis including all historical commits.*
-
----
-
-### Progress Since June 1 Assessment
-
-| Item | Status | Notes |
-|------|--------|-------|
-| React Error Boundaries (Tier 1.1) | ✅ Confirmed Complete | Commit `e694023`, June 1 — captured in June 1 docs |
-| CI/CD Pipeline + lint/type fixes (Tier 1.4) | ✅ Confirmed Complete | Commit `a2be016`, June 1 — captured in June 1 docs |
-
-Both items landed in a single commit on June 1 at 18:50 UTC, after the IMPROVEMENTS.md docs update at 14:21 UTC, and were correctly pre-captured in the June 1 progress table.
-
-**New finding — Pooled API Key may already be partially implemented:** A Feb 7, 2026 commit (`d6dc8f43`, "feat: implement admin-controlled shared API key support") was not detected in the May 31 or June 1 assessments. This predates the IMPROVEMENTS.md and suggests Tier 2.1 ("Shared/Pooled API Key Model") may already be partially or fully live. Before starting Tier 2.1 work, verify whether authenticated normal users are served from a pooled server-side key, or if only admin-approved users benefit.
-
-**Activity signal:** The last non-docs/CI code commit was March 15, 2026 (fuzzy wine matching + React Query preferences — ~11 weeks of dormancy). The June 2 priorities are: confirm the pooled key state, add CLAUDE.md for future session continuity, and pick up the two highest-impact user-facing items (scan history search, "I chose this").
-
-**Remaining open items from June 1:** Scan History Search (1.2), "I Chose This" feedback loop (1.3), Pooled API Key verification/completion (2.1), Preferences.tsx modularization (2.2), CSV Export (2.3), Wine Circles (3.1), Restaurant Integration (3.2), Offline PWA (3.3).
-
----
-
-### Updated Tier 1 — Quick Wins (June 2, 2026)
-
----
-
-#### 1.1 React Error Boundaries ✅ **CONFIRMED COMPLETE** (June 1, 2026)
-
-See the June 1 entry above for completion details.
-
----
-
-#### 1.2 Scan History Search and Filter ✅ **COMPLETE** (2026-06-02)
-
-Scan history search and filter already fully implemented in Dashboard.tsx. The component includes `searchQuery`, `contextFilter`, and `dateFilter` state variables, a `matchesSearch` function that checks against wine names and session notes, and a `filteredSessions` useMemo that combines all filters. No further action needed.
-
----
-
-#### 1.3 Close the Recommendation Feedback Loop — "I Chose This" 🔄 **IN PROGRESS** (2026-06-02)
-
-Being implemented in branch `claude/busy-rubin-89wo9`. See the May 31 entry above for full description and original agent prompt.
-
-**Estimated Effort:** 2–3 days | **Expected Impact:** High
-
----
-
-#### 1.4 CI/CD Pipeline ✅ **CONFIRMED COMPLETE** (June 1, 2026)
-
-See the June 1 entry above for completion details.
-
----
-
-#### 1.5 Add CLAUDE.md Project Context File
-
-**Description:** Somm has no `CLAUDE.md` file, making every AI-assisted development session start cold with no knowledge of the stack, design system, admin-approval flow, API key model, or branching conventions. This was noted in the June 1 assessment but no agent prompt was written. A `CLAUDE.md` takes under an hour and pays dividends on every future session — especially important given the 11-week development gap.
-
-**Estimated Effort:** 30 minutes | **Expected Impact:** Low (developer productivity / session continuity)
-
-**Agent Prompt:**
-> Create `CLAUDE.md` at the root of the Somm repository. Include: **(1) Project overview** — "Somm is a React + TypeScript + Supabase + Vite web app. Users photograph wine lists with their phone camera and receive personalized AI-powered recommendations based on their individual taste profile."; **(2) Tech stack** — Vite, React 18, TypeScript strict, Tailwind CSS, Supabase (auth + DB + Edge Functions), React Query v5, Vitest; **(3) Architecture summary** — services in `src/services/` (`scanService.ts`, `tasteService.ts`), pages in `src/pages/`, Edge Functions in `supabase/functions/` (Deno runtime, excluded from TS compile); **(4) Design system** — dark wine-themed palette (`#121011` Warm Charcoal background, Playfair Display headings), full tokens in `design-style.md`; **(5) Important constraints** — API key model: server-side pooled key via Supabase secrets + per-user daily scan quota; admin-approval required for new user access; scan history stored in `scan_sessions` table; **(6) Dev commands** — `npm run dev`, `npm run build`, `npx vitest run`, `npx tsc --noEmit`, `npx eslint src/`; **(7) Branching** — feature branches from `main`, CI required to pass before merge.
-
----
-
-### Updated Tier 2 — Moderate Effort (June 2, 2026)
-
----
-
-#### 2.1 Verify and Complete Pooled API Key Model *(Status: Needs Verification Before Re-implementing)*
-
-**Description:** A Feb 7, 2026 commit ("feat: implement admin-controlled shared API key support") suggests this may already be implemented for some or all users. Before executing the May 31 agent prompt, verify the current state in both the Edge Functions (`analyze-wine`) and the frontend onboarding/settings flow. If the pooled key is already live for all authenticated users (not just admins), mark this item complete. If per-user `localStorage` key fallback is still present for regular users, complete the remaining transition using the May 31 agent prompt.
-
-See the May 31 entry for the full original agent prompt.
-
-**Estimated Effort:** 0.5 day (verification) + 3–4 days if still incomplete | **Expected Impact:** High adoption
-
----
-
-#### 2.2 Preferences.tsx Modularization (23 KB) *(Carried Forward — Status: Open)*
-
-See the June 1 entry above for full description and agent prompt.
-
-**Estimated Effort:** 2 days | **Expected Impact:** Medium
-
----
-
-#### 2.3 Scan History Export (CSV) *(Carried Forward — Status: Open)*
-
-See the May 31 entry above for full description and agent prompt.
-
-**Estimated Effort:** 1–2 days | **Expected Impact:** Medium
-
----
-
-### Updated Tier 3 — Strategic (June 2, 2026)
-
-Carried forward unchanged — no new items:
-
-- **3.1 Wine Circles — Group Scanning** — see May 31 entry. **Effort:** XL | **Impact:** High long-term
-- **3.2 Restaurant Partnership Integration** — see May 31 entry. **Effort:** XL | **Impact:** Very high long-term
-- **3.3 Offline Cellar Browsing (PWA)** — see May 31 entry. **Effort:** S/M | **Impact:** Medium
+## Dropped / Stale
+None yet
