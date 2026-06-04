@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Store, UtensilsCrossed, DollarSign, Wine, MessageSquare, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +33,10 @@ export default function ScanDetail() {
   const deleteScan = useDeleteScan();
 
   const [chosenWine, setChosenWine] = useState<string | null>(session?.chosen_wine_name ?? null);
+
+  useEffect(() => {
+    setChosenWine(session?.chosen_wine_name ?? null);
+  }, [session?.chosen_wine_name]);
 
   const handleDelete = async () => {
     if (!session) return;
@@ -253,8 +257,7 @@ export default function ScanDetail() {
           
           {showDebug && (
             <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* Researched Wines Table */}
-               <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+              <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
                 <div className="px-4 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
                   <h3 className="text-xs font-medium text-champagne-100 uppercase tracking-wider">
                     Deep Researched Candidates ({session.debug_info.researchedWines.length})
@@ -287,7 +290,6 @@ export default function ScanDetail() {
                 </div>
               </div>
 
-              {/* All Wines Table */}
               <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
                 <div className="px-4 py-3 bg-white/5 border-b border-white/5">
                   <h3 className="text-xs font-medium text-champagne-100 uppercase tracking-wider">
