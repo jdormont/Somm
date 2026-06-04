@@ -4,7 +4,7 @@ _Last knowledge sync: 2026-06-03_
 _Assessment based on: full review of 30 most recent commits, all 5 closed PRs, complete IMPROVEMENTS.md history, key source files (ScanDetail.tsx, Scanner.tsx, Settings.tsx, Cellar.tsx, Dashboard.tsx, Preferences.tsx, useScannerLogic.ts, analyze-wine edge function), and migration history._
 
 ## Current Sprint
-Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: claude/vibrant-allen-YLJO8, started: 2026-06-04]
+Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: claude/vibrant-allen-YLJO8, PR: #8, started: 2026-06-04]
 
 ## Recently Completed ✓
 
@@ -19,7 +19,7 @@ Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: c
 
 ## Tier 1 — Quick Wins
 
-### Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: claude/vibrant-allen-YLJO8, started: 2026-06-04]
+### Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: claude/vibrant-allen-YLJO8, PR: #8, started: 2026-06-04]
 - **What:** `ScanDetail.tsx` initializes `chosenWine` state with `useState(session?.chosen_wine_name ?? null)`, but `session` is `undefined` on the first render (React Query loads async). No `useEffect` syncs the state after the session resolves, so the "I Chose This" toggle always renders unchosen when a user navigates directly to a scan URL — even if they previously made a choice. The fix is a one-line `useEffect(() => { setChosenWine(session?.chosen_wine_name ?? null); }, [session?.chosen_wine_name])`.
 - **Why now:** The "I Chose This" feature shipped in PR #5 but is silently broken for the most important case (returning to a past scan). This is a correctness regression in last sprint's work and should be the first thing patched.
 - **Effort estimate:** S
