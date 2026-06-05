@@ -4,7 +4,7 @@ _Last knowledge sync: 2026-06-03_
 _Assessment based on: full review of 30 most recent commits, all 5 closed PRs, complete IMPROVEMENTS.md history, key source files (ScanDetail.tsx, Scanner.tsx, Settings.tsx, Cellar.tsx, Dashboard.tsx, Preferences.tsx, useScannerLogic.ts, analyze-wine edge function), and migration history._
 
 ## Current Sprint
-None — ready for next implementation run
+**Close the "I Chose This" feedback loop in the edge function** — [IN PROGRESS — branch: claude/vibrant-allen-geySJ, started: 2026-06-05]
 
 ## Recently Completed ✓
 
