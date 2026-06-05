@@ -4,7 +4,7 @@ _Last knowledge sync: 2026-06-03_
 _Assessment based on: full review of 30 most recent commits, all 5 closed PRs, complete IMPROVEMENTS.md history, key source files (ScanDetail.tsx, Scanner.tsx, Settings.tsx, Cellar.tsx, Dashboard.tsx, Preferences.tsx, useScannerLogic.ts, analyze-wine edge function), and migration history._
 
 ## Current Sprint
-**Close the "I Chose This" feedback loop in the edge function** — [IN PROGRESS — branch: claude/vibrant-allen-geySJ, started: 2026-06-05]
+**Close the "I Chose This" feedback loop in the edge function** — [IN PROGRESS — PR: #11, branch: claude/vibrant-allen-geySJ, started: 2026-06-05]
 
 ## Recently Completed ✓
 
@@ -20,11 +20,11 @@ _Assessment based on: full review of 30 most recent commits, all 5 closed PRs, c
 
 ## Tier 1 — Quick Wins
 
-### Close the "I Chose This" feedback loop in the edge function — [OPEN]
+### Close the "I Chose This" feedback loop in the edge function — [IN PROGRESS — PR: #11]
 - **What:** The `chosen_wine_name` column was added to `scan_sessions` and the UI captures the user's choice, but the `analyze-wine` Supabase Edge Function does not query or use this data. The PRD's stated goal was to feed chosen wines back into future recommendations as a learning signal. Right now the data flywheel is only half-built: data is collected but never acted on.
 - **Why now:** The choice data is being written but immediately discarded from the recommendation loop. Each new scan could be personalized using actual purchase behavior — this is a high-leverage AI quality improvement that requires only ~15 lines added to the edge function's system prompt builder.
 - **Effort estimate:** S
-- **Actual effort:** —
+- **Actual effort:** S — as estimated; ~30 lines across 3 touch-points in a single file
 - **Agent prompt:** "In `supabase/functions/analyze-wine/index.ts`, after the user's `wine_memories` are resolved (around line 229), query `scan_sessions` using the admin Supabase client for the authenticated user's last 15 records where `chosen_wine_name IS NOT NULL`, ordered by `created_at DESC`. Add a new `buildChosenWineSignal(chosenWines: string[]): string` helper function (similar to `buildUserProfile`) that returns a `[CHOSEN_WINE_HISTORY]` block listing the wine names the user has actually selected in real situations. Inject this block into the system prompt between `[USER_PROFILE]` and `[CURRENT_CONSTRAINTS]`. The LLM instruction should read: 'These are wines this user actually chose and purchased — weight recommendations that share similar style, region, or variety more heavily.' Run `supabase functions deploy analyze-wine` after the change."
 
 ### Add CLAUDE.md project context file — [OPEN]
