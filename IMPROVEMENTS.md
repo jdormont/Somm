@@ -4,7 +4,7 @@ _Last knowledge sync: 2026-06-03_
 _Assessment based on: full review of 30 most recent commits, all 5 closed PRs, complete IMPROVEMENTS.md history, key source files (ScanDetail.tsx, Scanner.tsx, Settings.tsx, Cellar.tsx, Dashboard.tsx, Preferences.tsx, useScannerLogic.ts, analyze-wine edge function), and migration history._
 
 ## Current Sprint
-Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: claude/vibrant-allen-YLJO8, PR: #8, started: 2026-06-04]
+None — ready for next implementation run
 
 ## Recently Completed ✓
 
@@ -13,18 +13,12 @@ Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: c
 | React Error Boundaries (was Tier 1.1) | [DONE — merged: 2026-06-01, PR: #3] | `ErrorBoundary.tsx` + scanner-specific fallback UI |
 | CI/CD Pipeline (was Tier 1.4) | [DONE — merged: 2026-06-01, PR: #3] | `.github/workflows/ci.yml` — lint, typecheck, vitest in parallel |
 | Scan History Search and Filter (was Tier 1.2) | [DONE — merged: 2026-06-02, PR: #5] | `Dashboard.tsx` — search, context filter, date range filter |
+| Fix chosenWine stale initialization in ScanDetail | [DONE — merged: 2026-06-05, PR: #8] | `ScanDetail.tsx` — `useEffect` sync after React Query resolves; fixes "I Chose This" toggle on direct URL navigation |
 | "I Chose This" feedback button (was Tier 1.3) | [DONE — merged: 2026-06-02, PR: #5] | `RecommendationCard` toggle, `scan_sessions.chosen_wine_name` migration, `scanService.updateChosenWine` |
 
 ---
 
 ## Tier 1 — Quick Wins
-
-### Fix chosenWine stale initialization in ScanDetail — [IN PROGRESS — branch: claude/vibrant-allen-YLJO8, PR: #8, started: 2026-06-04]
-- **What:** `ScanDetail.tsx` initializes `chosenWine` state with `useState(session?.chosen_wine_name ?? null)`, but `session` is `undefined` on the first render (React Query loads async). No `useEffect` syncs the state after the session resolves, so the "I Chose This" toggle always renders unchosen when a user navigates directly to a scan URL — even if they previously made a choice. The fix is a one-line `useEffect(() => { setChosenWine(session?.chosen_wine_name ?? null); }, [session?.chosen_wine_name])`.
-- **Why now:** The "I Chose This" feature shipped in PR #5 but is silently broken for the most important case (returning to a past scan). This is a correctness regression in last sprint's work and should be the first thing patched.
-- **Effort estimate:** S
-- **Actual effort:** S (30 min)
-- **Agent prompt:** "In `src/pages/ScanDetail.tsx`, the `chosenWine` state is initialized from `session?.chosen_wine_name` before React Query has resolved the session. Add a `useEffect` that calls `setChosenWine(session?.chosen_wine_name ?? null)` whenever `session?.chosen_wine_name` changes: `useEffect(() => { setChosenWine(session?.chosen_wine_name ?? null); }, [session?.chosen_wine_name]);`. Import `useEffect` from React. Verify: navigate directly to a `/scans/:id` URL for a scan where you previously tapped 'I picked this' — the button should render in the chosen state on page load."
 
 ### Close the "I Chose This" feedback loop in the edge function — [OPEN]
 - **What:** The `chosen_wine_name` column was added to `scan_sessions` and the UI captures the user's choice, but the `analyze-wine` Supabase Edge Function does not query or use this data. The PRD's stated goal was to feed chosen wines back into future recommendations as a learning signal. Right now the data flywheel is only half-built: data is collected but never acted on.
