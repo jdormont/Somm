@@ -204,6 +204,16 @@ function buildConstraints(budget_min: number, budget_max: number, context: strin
   return lines.join("\n");
 }
 
+function buildChosenWineSignal(chosenWines: string[]): string {
+  if (chosenWines.length === 0) return '';
+  const lines = [
+    '[CHOSEN_WINE_HISTORY]',
+    'These are wines this user actually chose and purchased in real situations — weight recommendations that share similar style, region, or variety more heavily.',
+  ];
+  chosenWines.forEach(name => lines.push(`  - ${name}`));
+  return lines.join('\n');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -229,6 +239,7 @@ Deno.serve(async (req: Request) => {
     let apiKey = body.openai_api_key;
     const authHeader = req.headers.get('Authorization');
     let useSharedKey = false;
+    let chosenWineNames: string[] = [];
 
     if (authHeader) {
       const supabaseClient = createClient(
@@ -255,6 +266,21 @@ Deno.serve(async (req: Request) => {
         if (profileData?.use_shared_key) {
             useSharedKey = true;
             apiKey = Deno.env.get('OPENAI_API_KEY');
+        }
+
+        // Fetch the user's past wine choices to personalise future recommendations
+        const { data: chosenSessions } = await supabaseAdmin
+          .from('scan_sessions')
+          .select('chosen_wine_name')
+          .eq('user_id', user.user.id)
+          .not('chosen_wine_name', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(15);
+
+        if (chosenSessions) {
+          chosenWineNames = chosenSessions
+            .map((s: { chosen_wine_name: string | null }) => s.chosen_wine_name as string)
+            .filter(Boolean);
         }
       }
     }
@@ -448,6 +474,7 @@ Deno.serve(async (req: Request) => {
     // -------------------------------------------------------------------------
     const userProfile = buildUserProfile(preferences, wine_memories || []);
     const constraints = buildConstraints(budget_min, budget_max, context || "store", notes, food_context);
+    const chosenWineSignal = buildChosenWineSignal(chosenWineNames);
     
     // System prompt
     const systemPrompt = `
@@ -481,6 +508,7 @@ Do NOT guess. If the search data contradicts your internal knowledge, prefer the
 ### 1. ANALYSIS
 Compare verified wine facts against:
 ${userProfile}
+${chosenWineSignal ? '\n' + chosenWineSignal : ''}
 
 ### 2. OUTPUT FORMAT (JSON ONLY)
 {
