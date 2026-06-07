@@ -6,7 +6,7 @@ _Assessment based on: git log (last 30 commits), all PRs (PR #12 merged June 6 �
 ---
 
 ## Current Sprint
-None — ready for next implementation run
+**Remove debug console.log statements from AuthContext.tsx** — [IN PROGRESS — branch: claude/vibrant-allen-52FtZ, started: 2026-06-07]
 
 ---
 
