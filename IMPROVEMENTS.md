@@ -27,7 +27,7 @@ _Assessment based on: git log (last 30 commits), all PRs (PR #12 merged June 6 �
 
 ## Tier 1 — Quick Wins
 
-### Remove debug console.log statements from AuthContext.tsx — NEW
+### Remove debug console.log statements from AuthContext.tsx — IN PROGRESS — branch: claude/vibrant-allen-52FtZ
 - **What:** `src/contexts/AuthContext.tsx` contains three leftover debug `console.log` calls, confirmed June 7 via `git log -- src/contexts/AuthContext.tsx` to have been introduced in commit `a2be016` ("feat: error boundaries, CI pipeline, and lint/type fixes") and never cleaned up:
   - Line 47: `console.log('Profile loaded:', data)` — logs the full profile object (`role`, `approved`, `use_shared_key`) to the browser console on every load
   - Line 54: `console.log('No profile found for user:', userId)` — logs raw user UUIDs
@@ -35,7 +35,7 @@ _Assessment based on: git log (last 30 commits), all PRs (PR #12 merged June 6 �
   These are the *only* `console.log` calls anywhere in `src/` (confirmed via repo-wide grep) — everything else in the codebase is clean, which makes these three stand out as an oversight rather than a pattern.
 - **Why now:** Small, contained, zero-risk cleanup. Logging user role/approval-status/UUIDs to the browser console on every page load is unnecessary noise at best and a minor information-hygiene concern at worst (visible to anyone who opens devtools, including in screen-recordings/screenshots of bug reports). A 10-minute fix that's been sitting in shipped code since June 1.
 - **Effort estimate:** S (10 minutes)
-- **Actual effort:** —
+- **Actual effort:** S — ~10 minutes, matched the estimate exactly. Plain removal of all three `console.log` calls (no conditional debug-flag wrapper added — there's no existing `import.meta.env.DEV`-gated logging convention elsewhere in the codebase to extend, and the race-condition fix they were bread-crumbing has clearly held since June 1 with no recurrence). Confirmed `grep -rn "console\.log" src/` now returns zero matches. `npm run lint` (0 new issues — 15 pre-existing errors/6 warnings are all in untouched `supabase/functions/*` Deno edge functions, confirmed identical via git-stash diff), `npm run typecheck` (0 new issues — 3 pre-existing errors in `Dashboard.test.tsx`/`tasteService.ts` confirmed pre-existing via git-stash diff), `npm run build` (succeeds), and `npx vitest run` (18/18 tests pass) all green.
 - **Agent prompt:** "In `src/contexts/AuthContext.tsx`, remove the three debug `console.log` statements: line 47 (`console.log('Profile loaded:', data)`), line 54 (`console.log('No profile found for user:', userId)`), and line 60 (`console.log('AuthContext initialized: v1.1 (fix-race-condition)')`). If any of these were load-bearing for diagnosing a real race condition that might recur, replace with a proper conditional debug flag (e.g. gated on `import.meta.env.DEV`) rather than deleting outright — but a plain removal is preferred unless there's evidence the race condition is still being actively monitored. Run `npx tsc --noEmit` and `npx vitest run` to confirm no regressions (these are pure side-effect removals with no behavioral dependency)."
 
 ---
