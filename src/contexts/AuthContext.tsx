@@ -44,20 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data) {
-      console.log('Profile loaded:', data);
-      setProfile({ 
-        role: data.role as 'admin' | 'user', 
+      setProfile({
+        role: data.role as 'admin' | 'user',
         approved: data.approved,
-        use_shared_key: data.use_shared_key 
+        use_shared_key: data.use_shared_key
       });
     } else {
-      console.log('No profile found for user:', userId);
       setProfile(null);
     }
   };
 
   useEffect(() => {
-    console.log('AuthContext initialized: v1.1 (fix-race-condition)');
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
