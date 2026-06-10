@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wine, Plus, Star, Loader2, Trash2, MapPin, DollarSign } from 'lucide-react';
+import { Wine, Plus, Star, Loader2, Trash2, MapPin, DollarSign, Search, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import AddWineForm from '../components/AddWineForm';
@@ -48,6 +48,7 @@ export default function Cellar() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (user) loadMemories();
@@ -74,9 +75,19 @@ export default function Cellar() {
     loadMemories();
   };
 
-  const filtered = filterRating
-    ? memories.filter((m) => m.rating === filterRating)
-    : memories;
+  const filtered = memories.filter((m) => {
+    if (filterRating && m.rating !== filterRating) return false;
+
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      const matchesName = m.name?.toLowerCase().includes(query);
+      const matchesProducer = m.producer?.toLowerCase().includes(query);
+      const matchesRegion = m.region?.toLowerCase().includes(query);
+      if (!matchesName && !matchesProducer && !matchesRegion) return false;
+    }
+
+    return true;
+  });
 
   const avgRating = memories.length > 0
     ? (memories.reduce((sum, m) => sum + m.rating, 0) / memories.length).toFixed(1)
@@ -139,6 +150,28 @@ export default function Cellar() {
       )}
 
       {memories.length > 0 && (
+        <div className="relative mb-4">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, producer, or region…"
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-white/10 bg-wine-slate-900/50 text-champagne-100 placeholder:text-stone-600 focus:outline-none focus:ring-1 focus:ring-champagne-400/50 focus:border-champagne-400/50 transition-all text-sm backdrop-blur-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {memories.length > 0 && (
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
           <button
             onClick={() => setFilterRating(null)}
@@ -186,7 +219,19 @@ export default function Cellar() {
           </button>
         </div>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-sm text-stone-500 py-8">No wines with that rating</p>
+        <div className="text-center py-8">
+          <p className="text-sm text-stone-500 mb-3">
+            {searchQuery.trim() ? 'No wines match your search' : 'No wines with that rating'}
+          </p>
+          {searchQuery.trim() && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-xs font-medium text-champagne-400 hover:text-champagne-300 transition-colors"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((memory) => (

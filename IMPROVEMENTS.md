@@ -6,7 +6,7 @@ _Assessment based on: git log (commits since June 7), PR #14 (merged June 8 — 
 ---
 
 ## Current Sprint
-None — ready for next implementation run.
+None — Cellar text search (Tier 1) implemented on branch `claude/vibrant-allen-jqi1y2`, ready for review.
 
 ---
 
@@ -28,11 +28,11 @@ None — ready for next implementation run.
 
 ## Tier 1 — Quick Wins
 
-### Cellar text search — OPEN
+### Cellar text search — DONE
 - **What:** `Cellar.tsx` offers only a 1–5 star rating filter. A user with 50+ cellar entries has no way to find a specific wine by name, producer, or region. Confirmed June 10: `Cellar.tsx` is still 268 lines, byte-for-byte the same gap — `filterRating` state exists, `searchQuery` does not. All data is already in local state — no backend changes needed.
 - **Why now:** The scan history Dashboard received search in PR #5 over a week ago. The Cellar is the other primary browsing surface and has had the identical gap for that entire time (confirmed unchanged across 4 consecutive assessments now: June 6, 7, and 10). This is the most "shovel-ready" item in the backlog: well-specified, contained, no backend risk, and directly mirrors a pattern that already shipped successfully elsewhere in the same codebase. With the Current Sprint slot now empty, this is the natural next pick.
 - **Effort estimate:** S
-- **Actual effort:** —
+- **Actual effort:** S — added `searchQuery` state, a search input above the rating-filter row matching `Dashboard.tsx`'s styling/clear-button pattern, and combined it (AND logic) with the existing `filterRating` filter against `name`/`producer`/`region`. Added a distinct "No wines match your search" empty state with a clear-search action. `npm run lint`/`typecheck`/`build`/`vitest run` all clean (15 pre-existing lint errors and 3 pre-existing typecheck errors in unrelated files, confirmed identical via `git stash`).
 - **Agent prompt:** "In `src/pages/Cellar.tsx`, add a text search input above the star-rating filter row. Add a `searchQuery` state variable (`useState('')`). Modify the `filtered` derivation to also filter by `searchQuery`: match against `memory.name`, `memory.producer`, and `memory.region` (all case-insensitive). Add a debounced input (300ms, or use a simple controlled input — no library needed). Use the same input styling as `Dashboard.tsx` for visual consistency (dark glass-morphism card with placeholder 'Search by name, producer, or region…'). Show a 'No results' empty state with a clear-search button when filtered is empty but memories is not. No Supabase queries needed — all data is already in local state."
 
 ---
