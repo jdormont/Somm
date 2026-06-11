@@ -6,7 +6,7 @@ _Assessment based on: git log (PR #16 "Add text search to Cellar" merged June 11
 ---
 
 ## Current Sprint
-None — ready for next implementation run.
+Settings.tsx shared-key UX (Tier 1) — `[IN PROGRESS — PR: #18]`
 
 ---
 
@@ -29,12 +29,11 @@ None — ready for next implementation run.
 
 ## Tier 1 — Quick Wins
 
-### Settings.tsx shared-key UX — OPEN _(recommended next; 2 consecutive cycles unpicked)_
-- **What:** Split out from the prior "Complete the pooled API key migration" Tier 2 item, which was partly resolved without being tracked: `Dashboard.tsx` (line 55) already correctly computes `hasApiKey = !!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key`, and `useScannerLogic.ts` (line 58) has the equivalent guard — so the setup-warning banner and scan gate already behave correctly for shared-key users. The remaining gap is narrower than previously scoped: `Settings.tsx` (117 lines, confirmed via grep June 11) still has zero references to `use_shared_key`, `useAuth`, or `profile` — the API key input section renders identically for all users regardless of whether an admin has granted them shared-key access.
-- **Why now:** This is now a small, self-contained UI change (the edge function guard, Dashboard banner, and scanner gate are all already correct), making it genuinely S-effort rather than the M-effort it was scoped at when it was bundled with quota enforcement. Closing it removes the single largest remaining onboarding dead-end for non-technical users who've been granted shared-key access but still see a confusing "enter your API key" form. This item has now been shovel-ready for 2 consecutive assessments (June 10, 11) without being picked up — it is the recommended next pickup.
+### Settings.tsx shared-key UX — `[IN PROGRESS — PR: #18]`
+- **What:** Split out from the prior "Complete the pooled API key migration" Tier 2 item, which was partly resolved without being tracked: `Dashboard.tsx` (line 55) already correctly computes `hasApiKey = !!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key`, and `useScannerLogic.ts` (line 58) has the equivalent guard — so the setup-warning banner and scan gate already behave correctly for shared-key users. The remaining gap was narrower than previously scoped: `Settings.tsx` (117 lines) had zero references to `use_shared_key`, `useAuth`, or `profile` — the API key input section rendered identically for all users regardless of whether an admin had granted them shared-key access.
+- **Status:** PR #18 imports `useAuth` and checks `profile?.use_shared_key`. If true, the API key input section is replaced with a read-only confirmation card ("No API key required") styled with the existing glassmorphism card + champagne/`vine` accent colors. If false, the existing input is kept with an added note that the requirement may not apply to shared-key accounts. No changes to `Dashboard.tsx`, `useScannerLogic.ts`, or the edge function. `npx vitest run` (18/18), `npm run build` clean; pre-existing lint/typecheck errors in `supabase/functions/` and `tasteService.ts`/`Dashboard.test.tsx` are unrelated and present on `main`. Awaiting review/merge.
 - **Effort estimate:** S
-- **Actual effort:** —
-- **Agent prompt:** "In `src/pages/Settings.tsx`, import `useAuth` and check `profile?.use_shared_key`. If true, replace the API key input section with a read-only card: 'You are using Somm's shared scanning service — no API key required.' styled with the existing champagne/green success palette (see `tailwind.config.js` for `champagne-*`/`vine-green`). If false, keep the existing input but update the help text to note the API key requirement may not apply to all accounts. No changes needed to `Dashboard.tsx`, `useScannerLogic.ts`, or the edge function — all three already handle `use_shared_key` correctly."
+- **Actual effort:** S
 
 ---
 
