@@ -1,12 +1,12 @@
 # Improvements
-_Last assessment: 2026-06-10_
-_Last knowledge sync: 2026-06-10_
-_Assessment based on: git log (commits since June 7), PR #14 (merged June 8 — AuthContext console.log cleanup, closes the prior Current Sprint item), full PR history (#1-#14, all closed/merged, no new open PRs), open issues (none), fresh-eyes code inspection of AuthContext.tsx (confirmed clean — `grep -rn "console\.log" src/` returns zero matches, only appropriate `console.error` remains), Cellar.tsx (still 268 lines, still no `searchQuery`), Settings.tsx (confirmed `use_shared_key` still unhandled — `grep` for `use_shared_key`/`shared` returns nothing), Dashboard.tsx (confirmed `hasApiKey` already correctly checks `profile?.use_shared_key` — line 55 — so part 2 of the prior pooled-key agent prompt is already done, only the Settings.tsx UI piece remains), Preferences.tsx (552 lines, unchanged, `PreferencesRefactor.test.tsx` still present and unused for its intended purpose), analyze-wine edge function (615 lines, `chosenWineNames`/`buildChosenWineSignal` confirmed present and live since June 7), PRD.md and preference_logic.md (re-read in full for Phase 3/4 status), Knowledge.tsx + WineKnowledgeModal.tsx + WineTermLink.tsx (confirmed: PRD Phase 3 "Wine Knowledge" — tap a term for an educational card — is already implemented, with a dedicated `/knowledge` nav entry; not previously tracked in this backlog)._
+_Last assessment: 2026-06-11_
+_Last knowledge sync: 2026-06-11_
+_Assessment based on: git log (PR #16 "Add text search to Cellar" merged June 11 — the only change since the June 10 reassessment, PR #15), all PRs (state=all — PR #16 is the most recent merged implementation PR; PR #17 is an open docs-only reassessment PR not yet merged), open issues (none), and confirmation that `Cellar.tsx` now has a `searchQuery` state and search input combined with the existing `filterRating` filter._
 
 ---
 
 ## Current Sprint
-None — Cellar text search (Tier 1) implemented on branch `claude/vibrant-allen-jqi1y2`, ready for review.
+None — ready for next implementation run.
 
 ---
 
@@ -14,7 +14,8 @@ None — Cellar text search (Tier 1) implemented on branch `claude/vibrant-allen
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Remove debug console.log statements from AuthContext.tsx (Tier 1) | ✅ DONE — merged: 2026-06-08, PR #14 | All three debug `console.log` calls (profile data incl. role/approval/`use_shared_key`, raw user UUIDs, and the versioned debug breadcrumb) removed via plain deletion, no conditional wrapper added. Verified `grep -rn "console\.log" src/` now returns zero matches; only the pre-existing, appropriate `console.error('Error loading profile:', ...)` remains. Effort matched estimate (S, ~10 min). Closes the item that was `[IN PROGRESS]` at the last assessment. |
+| Cellar text search (Tier 1) | ✅ DONE — merged: 2026-06-11, PR #16 | Added `searchQuery` state and a search input above the rating-filter row in `src/pages/Cellar.tsx`, matching `Dashboard.tsx`'s styling. `filtered` now combines search (case-insensitive match against `name`/`producer`/`region`) with the existing `filterRating` filter (AND logic). Added a "No wines match your search" empty state with clear-search action. `npm run lint`/`typecheck`/`build`/`vitest run` all clean. Closes the item that was Current Sprint at the last assessment. |
+| Remove debug console.log statements from AuthContext.tsx (Tier 1) | ✅ Done | PR #14, merged June 8, 2026. Carried forward for history. |
 | Add CLAUDE.md project context file (Tier 1) | ✅ Done | Commit `0f1c581`, June 7, 2026 — landed on `main` after 7 consecutive assessments flagging it. Carried forward from prior assessment for history. |
 | Verify/run analyze-wine deploy for the feedback-loop fix (Tier 1) | ✅ Done — deploy confirmed 2026-06-07 | `[CHOSEN_WINE_HISTORY]` injection from `chosenWineNames` confirmed live in production. Carried forward from prior assessment for history. |
 | Close "I Chose This" feedback loop in analyze-wine (Tier 1) | ✅ Done | PR #11, June 5, 2026. Carried forward for history. |
@@ -28,21 +29,12 @@ None — Cellar text search (Tier 1) implemented on branch `claude/vibrant-allen
 
 ## Tier 1 — Quick Wins
 
-### Cellar text search — DONE
-- **What:** `Cellar.tsx` offers only a 1–5 star rating filter. A user with 50+ cellar entries has no way to find a specific wine by name, producer, or region. Confirmed June 10: `Cellar.tsx` is still 268 lines, byte-for-byte the same gap — `filterRating` state exists, `searchQuery` does not. All data is already in local state — no backend changes needed.
-- **Why now:** The scan history Dashboard received search in PR #5 over a week ago. The Cellar is the other primary browsing surface and has had the identical gap for that entire time (confirmed unchanged across 4 consecutive assessments now: June 6, 7, and 10). This is the most "shovel-ready" item in the backlog: well-specified, contained, no backend risk, and directly mirrors a pattern that already shipped successfully elsewhere in the same codebase. With the Current Sprint slot now empty, this is the natural next pick.
-- **Effort estimate:** S
-- **Actual effort:** S — added `searchQuery` state, a search input above the rating-filter row matching `Dashboard.tsx`'s styling/clear-button pattern, and combined it (AND logic) with the existing `filterRating` filter against `name`/`producer`/`region`. Added a distinct "No wines match your search" empty state with a clear-search action. `npm run lint`/`typecheck`/`build`/`vitest run` all clean (15 pre-existing lint errors and 3 pre-existing typecheck errors in unrelated files, confirmed identical via `git stash`).
-- **Agent prompt:** "In `src/pages/Cellar.tsx`, add a text search input above the star-rating filter row. Add a `searchQuery` state variable (`useState('')`). Modify the `filtered` derivation to also filter by `searchQuery`: match against `memory.name`, `memory.producer`, and `memory.region` (all case-insensitive). Add a debounced input (300ms, or use a simple controlled input — no library needed). Use the same input styling as `Dashboard.tsx` for visual consistency (dark glass-morphism card with placeholder 'Search by name, producer, or region…'). Show a 'No results' empty state with a clear-search button when filtered is empty but memories is not. No Supabase queries needed — all data is already in local state."
-
----
-
-### Settings.tsx shared-key UX — OPEN
-- **What:** Split out from the prior "Complete the pooled API key migration" Tier 2 item, which was partly resolved without being tracked: `Dashboard.tsx` (line 55) already correctly computes `hasApiKey = !!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key`, so the setup-warning banner already behaves correctly for shared-key users. The remaining gap is narrower than previously scoped: `Settings.tsx` still has zero references to `use_shared_key` (confirmed via grep, June 10) — the API key input section renders identically for all users regardless of whether an admin has granted them shared-key access.
-- **Why now:** This is now a small, self-contained UI change (the edge function guard and Dashboard banner logic are both already correct), making it genuinely S-effort rather than the M-effort it was scoped at when it was bundled with quota enforcement. Closing it removes the single largest remaining onboarding dead-end for non-technical users who've been granted shared-key access but still see a confusing "enter your API key" form.
+### Settings.tsx shared-key UX — OPEN _(recommended next; 2 consecutive cycles unpicked)_
+- **What:** Split out from the prior "Complete the pooled API key migration" Tier 2 item, which was partly resolved without being tracked: `Dashboard.tsx` (line 55) already correctly computes `hasApiKey = !!localStorage.getItem('somm_openai_api_key') || !!profile?.use_shared_key`, and `useScannerLogic.ts` (line 58) has the equivalent guard — so the setup-warning banner and scan gate already behave correctly for shared-key users. The remaining gap is narrower than previously scoped: `Settings.tsx` (117 lines, confirmed via grep June 11) still has zero references to `use_shared_key`, `useAuth`, or `profile` — the API key input section renders identically for all users regardless of whether an admin has granted them shared-key access.
+- **Why now:** This is now a small, self-contained UI change (the edge function guard, Dashboard banner, and scanner gate are all already correct), making it genuinely S-effort rather than the M-effort it was scoped at when it was bundled with quota enforcement. Closing it removes the single largest remaining onboarding dead-end for non-technical users who've been granted shared-key access but still see a confusing "enter your API key" form. This item has now been shovel-ready for 2 consecutive assessments (June 10, 11) without being picked up — it is the recommended next pickup.
 - **Effort estimate:** S
 - **Actual effort:** —
-- **Agent prompt:** "In `src/pages/Settings.tsx`, check `profile?.use_shared_key` (from `useAuth`). If true, replace the API key input section with a read-only card: 'You are using Somm's shared scanning service — no API key required.' styled with the existing champagne/green success palette. If false, keep the existing input but update the help text to note that the API key requirement may be removed in future. No changes needed to `Dashboard.tsx` or the edge function — both already handle `use_shared_key` correctly."
+- **Agent prompt:** "In `src/pages/Settings.tsx`, import `useAuth` and check `profile?.use_shared_key`. If true, replace the API key input section with a read-only card: 'You are using Somm's shared scanning service — no API key required.' styled with the existing champagne/green success palette (see `tailwind.config.js` for `champagne-*`/`vine-green`). If false, keep the existing input but update the help text to note the API key requirement may not apply to all accounts. No changes needed to `Dashboard.tsx`, `useScannerLogic.ts`, or the edge function — all three already handle `use_shared_key` correctly."
 
 ---
 
