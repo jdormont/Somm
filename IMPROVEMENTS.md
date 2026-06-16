@@ -8,9 +8,7 @@ _Assessment based on: `git fetch origin main` + `git log origin/main` (only 2 co
 ---
 
 ## Current Sprint
-None — ready for next implementation run.
-
-The prior Current Sprint item, **Settings.tsx shared-key UX (PR #18)**, is **merged** (merged 2026-06-11T19:53:43Z). Confirmed live on `main`: `src/pages/Settings.tsx` now imports `useAuth`, reads `profile?.use_shared_key`, and renders the read-only "No API key required" confirmation card for shared-key users, with the existing form retained (plus a note) for everyone else. No work in flight.
+Daily scan quota for shared-key users (Tier 1) — `[IN PROGRESS — branch: claude/fervent-galileo-lqx73b, started: 2026-06-16]`
 
 ---
 
