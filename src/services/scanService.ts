@@ -81,10 +81,20 @@ export const scanService = {
 
     if (error) {
        console.error('Supabase Function Invoke Error:', error);
-       
+
        // Propagate specific status codes if needed
+       if (error.status === 429) throw new Error('DAILY_LIMIT_REACHED');
        if (error.status === 401) throw new Error('Unauthorized - Please ensure you are logged in.');
        throw new Error(error.message || 'Analysis failed');
+    }
+
+    // Some Supabase versions surface edge-function errors in `data` rather than `error`
+    if (data && typeof data === 'object' && 'error' in data) {
+      const edgeError = (data as { error: string }).error;
+      if (edgeError === 'Daily scan limit reached. Resets at midnight UTC.') {
+        throw new Error('DAILY_LIMIT_REACHED');
+      }
+      throw new Error(edgeError || 'Analysis failed');
     }
 
     return data;
