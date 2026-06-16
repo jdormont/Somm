@@ -287,7 +287,7 @@ Deno.serve(async (req: Request) => {
 
     if (!apiKey) {
       console.error('Error: No OpenAI API key found.');
-      
+
       return new Response(
         JSON.stringify({
           error: "No OpenAI API key configured. Please add your API key in Settings.",
@@ -297,6 +297,52 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // -------------------------------------------------------------------------
+    // DAILY QUOTA CHECK — shared-key users only
+    // -------------------------------------------------------------------------
+    if (useSharedKey) {
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      const { data: userData } = await supabaseAdmin.auth.getUser(
+        req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
+      );
+      const userId = userData?.user?.id;
+
+      if (userId) {
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data: existing } = await supabaseAdmin
+          .from('daily_scan_counts')
+          .select('count')
+          .eq('user_id', userId)
+          .eq('scan_date', today)
+          .maybeSingle();
+
+        const currentCount = existing?.count ?? 0;
+
+        if (currentCount >= 10) {
+          return new Response(
+            JSON.stringify({ error: 'Daily scan limit reached. Resets at midnight UTC.' }),
+            {
+              status: 429,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        // Increment (or create) the count for today — non-blocking, fire and continue
+        await supabaseAdmin
+          .from('daily_scan_counts')
+          .upsert(
+            { user_id: userId, scan_date: today, count: currentCount + 1 },
+            { onConflict: 'user_id,scan_date' }
+          );
+      }
     }
 
     if (!image_base64) {

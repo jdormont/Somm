@@ -206,31 +206,43 @@ export default function Scanner() {
           </section>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-red-200">{error}</p>
-                {error.includes('API key') && (
-                  <button
-                    onClick={() => navigate('/settings')}
-                    className="text-sm text-red-300 font-medium underline mt-1 hover:text-red-100"
-                  >
-                    Go to Settings
-                  </button>
-                )}
-                {(error.includes('sign in') || error.includes('Unauthorized')) && (
-                  <button
-                    onClick={async () => {
-                        await supabase.auth.signOut();
-                        navigate('/login');
-                    }}
-                    className="text-sm text-red-300 font-medium underline mt-1 hover:text-red-100"
-                  >
-                    Sign Out & Retry
-                  </button>
-                )}
+            error === 'DAILY_LIMIT_REACHED' ? (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
+                <Wine className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-200">Daily scan limit reached</p>
+                  <p className="text-sm text-amber-300/80 mt-0.5">
+                    You've used your 10 free scans for today. Your limit resets at midnight UTC — come back tomorrow to keep exploring.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-red-200">{error}</p>
+                  {error.includes('API key') && (
+                    <button
+                      onClick={() => navigate('/settings')}
+                      className="text-sm text-red-300 font-medium underline mt-1 hover:text-red-100"
+                    >
+                      Go to Settings
+                    </button>
+                  )}
+                  {(error.includes('sign in') || error.includes('Unauthorized')) && (
+                    <button
+                      onClick={async () => {
+                          await supabase.auth.signOut();
+                          navigate('/login');
+                      }}
+                      className="text-sm text-red-300 font-medium underline mt-1 hover:text-red-100"
+                    >
+                      Sign Out & Retry
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
           )}
 
           <button
