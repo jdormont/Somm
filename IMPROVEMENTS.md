@@ -8,7 +8,7 @@ _Assessment based on: `git fetch origin main` + `git log origin/main` (only 2 co
 ---
 
 ## Current Sprint
-Daily scan quota for shared-key users (Tier 1) — `[IN PROGRESS — branch: claude/fervent-galileo-lqx73b, started: 2026-06-16]`
+Daily scan quota for shared-key users (Tier 1) — `[IN PROGRESS — PR: #20]`
 
 ---
 
@@ -53,7 +53,7 @@ Daily scan quota for shared-key users (Tier 1) — `[IN PROGRESS — branch: cla
 - **What:** The edge function correctly resolves `use_shared_key = true` to the server's `OPENAI_API_KEY`, but there is still no per-user daily limit on shared-key usage — confirmed June 15, no `daily_scan_counts` table or equivalent exists in `supabase/migrations/`.
 - **Why now:** **Escalated from Tier 3 to Tier 1.** This item appeared at Tier 3 across June 7, 10, and 11 without movement, each time noting it should be bundled with or immediately follow the Settings.tsx shared-key UX work (Tier 1, then in progress as PR #18). PR #18 has now **merged and is live on `main`** — `Settings.tsx` actively tells shared-key users "No API key required... using Somm's shared scanning service." That UX promise is now shipping to production *without* the cost guardrail that was supposed to accompany it. Per PRD's Constraints section, GPT-4 Vision token cost is the explicit reason the admin-approval gate exists; the gap between "we just told users scanning is free" and "there is no per-user cap" is now a live, unbounded-cost risk rather than a theoretical one. This is no longer a strategic/investigative item — it's a guardrail that should have shipped alongside PR #18 and is now overdue.
 - **Effort estimate:** M
-- **Actual effort:** —
+- **Actual effort:** M
 - **Agent prompt:** "In `supabase/functions/analyze-wine/index.ts`, after confirming `useSharedKey = true`, enforce a daily scan quota: upsert a row in a new `daily_scan_counts(user_id uuid, scan_date date, count int, primary key(user_id, scan_date))` table, incrementing `count`. If `count > 10`, return HTTP 429 with JSON `{ error: 'Daily scan limit reached. Resets at midnight UTC.' }`. Create the migration for `daily_scan_counts` with an appropriate RLS policy (users can read their own count; service role writes). Surface the 429 response in `useScannerLogic`/`Scanner.tsx` with a clear user-facing message (e.g., a dismissible banner distinct from the generic error state). Note: requires a redeploy of `analyze-wine` after merge — coordinate with whoever runs `supabase functions deploy analyze-wine`, and verify the deploy actually happened (per the June 7 lesson where PR #11's deploy lagged its merge)."
 
 ---
