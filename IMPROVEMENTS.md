@@ -8,7 +8,7 @@ _Assessment based on: `git log` (local + `origin/main`, confirming PR #20 merge 
 ---
 
 ## Current Sprint
-Redundant `auth.getUser()` call in analyze-wine quota check (Tier 1) — `[IN PROGRESS]`
+Redundant `auth.getUser()` call in analyze-wine quota check (Tier 1) — `[IN PROGRESS — PR: #22]`
 
 ---
 
