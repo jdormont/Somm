@@ -240,6 +240,7 @@ Deno.serve(async (req: Request) => {
     const authHeader = req.headers.get('Authorization');
     let useSharedKey = false;
     let chosenWineNames: string[] = [];
+    let authedUserId: string | undefined;
 
     if (authHeader) {
       const supabaseClient = createClient(
@@ -251,6 +252,7 @@ Deno.serve(async (req: Request) => {
       const { data: user } = await supabaseClient.auth.getUser();
 
       if (user?.user) {
+        authedUserId = user.user.id;
         // Use Service Role to bypass RLS for profile lookup
         const supabaseAdmin = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -308,10 +310,7 @@ Deno.serve(async (req: Request) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      const { data: userData } = await supabaseAdmin.auth.getUser(
-        req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
-      );
-      const userId = userData?.user?.id;
+      const userId = authedUserId;
 
       if (userId) {
         const today = new Date().toISOString().split('T')[0];
