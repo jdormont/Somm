@@ -1,5 +1,5 @@
 import { ScanLine, Loader2, Sparkles, DollarSign, MessageSquare, AlertCircle, Store, UtensilsCrossed, Wine } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from '../components/ImageUpload';
@@ -8,6 +8,13 @@ import AddWineForm from '../components/AddWineForm';
 import WineDetailsModal from '../components/WineDetailsModal';
 import { useScannerLogic } from '../hooks/useScannerLogic';
 import type { WineRecommendation } from '../types';
+
+const ANALYZING_STAGES = [
+  { atSeconds: 0, message: 'Reading the wine list...' },
+  { atSeconds: 5, message: 'Scoring matches against your taste profile...' },
+  { atSeconds: 12, message: 'Researching your top picks...' },
+  { atSeconds: 22, message: 'Finalizing recommendations...' },
+] as const;
 
 export default function Scanner() {
   const { isAdmin } = useAuth();
@@ -40,6 +47,26 @@ export default function Scanner() {
       navigate
     }
   } = useScannerLogic();
+
+  const [analyzingMessage, setAnalyzingMessage] = useState<string>(ANALYZING_STAGES[0].message);
+
+  useEffect(() => {
+    if (!analyzing) {
+      setAnalyzingMessage(ANALYZING_STAGES[0].message);
+      return;
+    }
+
+    const startedAt = Date.now();
+    setAnalyzingMessage(ANALYZING_STAGES[0].message);
+
+    const interval = setInterval(() => {
+      const elapsedSeconds = (Date.now() - startedAt) / 1000;
+      const stage = [...ANALYZING_STAGES].reverse().find((s) => elapsedSeconds >= s.atSeconds);
+      if (stage) setAnalyzingMessage(stage.message);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [analyzing]);
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -253,7 +280,7 @@ export default function Scanner() {
             {analyzing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Analyzing wine list...
+                {analyzingMessage}
               </>
             ) : (
               <>
